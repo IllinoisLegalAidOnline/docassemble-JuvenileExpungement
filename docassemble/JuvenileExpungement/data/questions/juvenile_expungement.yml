@@ -63,6 +63,7 @@ code: |
 
   nav.set_section('section_filing')
   users[0].name.first
+  users[0].has_other_names
   users[0].birthdate
   users[0].address.address
   users[0].has_email
@@ -73,6 +74,9 @@ code: |
 
   nav.set_section('section_download')
   forms_assembling
+  refresh_agencies_list
+  list_numbers
+  refresh_bundles
   snapshot_forms
   get_docs_screen
 
@@ -96,8 +100,9 @@ code: |
   if is_eligible(arrests[i]):
     arrests[i].charge
     arrests[i].agency.name.first
+    arrests[i].outcome
     arrests[i].case_number
-    arrests[i].enforcement_number
+    arrests[i].enforcement_number  
 
   arrests[i].complete = True
 ---
@@ -372,6 +377,22 @@ fields:
   code: |
     users[0].name_fields()
 ---
+id: other names
+question: |
+  Do you have any other names that were used in your cases or arrests?
+subquestions: |
+  If you used other names, list them here. This can help make sure the correct records are expunged or sealed.
+fields:
+  - no label: users[0].has_other_names
+    datatype: yesnoradio
+  - Other names (separate by commas): other_user_names
+    input type: area
+    rows: 2
+    max: 100
+    show if:
+      variable: users[0].has_other_names
+      is: True
+---
 id: user birthdate
 question: |
    When were you born?
@@ -574,7 +595,7 @@ id: charge offense
 question: |
   What were you arrested for on ${arrests[i].date}?
 subquestion: |  
-  **Note**: If you were found guilty of something else due to this arrest, list that charge here. 
+  **Note**: If you were found guilty of something else due to this arrest, list that charge here.
 
   If there is more than one offense or charge, separate each one by a semicolon.
 fields:
@@ -583,7 +604,17 @@ fields:
     rows: 1
     maxlength: 50
 ---
-id: arresting agency
+reconsider: True
+code: |
+  agencies_list = []
+  for index, arrest in enumerate(arrests):
+    if index == 0:
+      agencies_list.append(arrest.agency)
+    elif arrest.agency_option == "other":
+      agencies_list.append(arrest.agency)
+  refresh_agencies_list = True
+---
+id: arresting agency generic
 question: |
   What is the name and address of the law enforcement agency that arrested you?
 subquestion: |
@@ -591,18 +622,53 @@ subquestion: |
 
    ${collapse_template(where_to_find_records_help)}
 fields:
-  - Agency: arrests[i].agency.name.first
+  - Agency: arrests[i].agency_option
+    input type: radio
+    choices:
+      code: |
+          agencies_list + "Another agency"
+  - Agency name: arrests[i].agency.name.first
     maxlength: 35
+    show if: arrests[i].agency_option == "other"
   - Street address: arrests[i].agency.address.address
     address autocomplete: True
+    show if: arrests[i].agency_option == "other"
   - Address line 2: arrests[i].agency.address.unit
     required: False
+    show if: arrests[i].agency_option == "other"
   - City: arrests[i].agency.address.city
+    show if: arrests[i].agency_option == "other"
   - State: arrests[i].agency.address.state
     code: |
       states_list()
     default: IL      
-  - ZIP code: arrests[i].agency.address.zip
+    show if: arrests[i].agency_option == "other"
+  - ZIP code: arrests[i].agency.address.zip  
+    show if: arrests[i].agency_option == "other"
+validation code: |
+  if arrests[i].agency_option != "other":
+    arrests[i].agency = arrests[i].agency_option
+---
+id: arresting agency zero
+question: |
+  What is the name and address of the law enforcement agency that arrested you?
+subquestion: |
+  This is often a police department.
+
+   ${collapse_template(where_to_find_records_help)}
+fields:
+  - Agency: arrests[0].agency.name.first
+    maxlength: 35
+  - Street address: arrests[0].agency.address.address
+    address autocomplete: True
+  - Address line 2: arrests[0].agency.address.unit
+    required: False
+  - City: arrests[0].agency.address.city
+  - State: arrests[0].agency.address.state
+    code: |
+      states_list()
+    default: IL      
+  - ZIP code: arrests[0].agency.address.zip
 ---
 id: arrest case number
 question: |
@@ -641,6 +707,22 @@ content: |
   * [**Cook County court disposition and a Chicago Police RAP sheet :external-link:**](${ cook_preview.url_for() })
   
   * [**Court record or docket sheet (outside of Cook County) and an Illinois State Police RAP sheet :external-link:**](${ il_preview.url_for() })
+---
+id: arrest outcome
+question: |
+  What was the outcome of the ${arrests[i].date} arrest?
+fields:
+  - Outcome: arrests[i].outcome
+    datatype: radio
+    choices:
+      - "**RWC** - Released Without Charge": RWC
+      - "**DA** - Dismissal or Acquittal, Finding of No Probable Cause (FNPC), Found Not Guilty (FNG), Nolle Prosequi, Non-Suit, Stricken Off with Leave to Reinstate (SOL)": DA
+      - "**S** - Court Supervision, Completed successfully": S
+      - "**QP** - First Offender Drug Probation or Qualified Probation, Completed successfully Completed": QP
+      - "**FI** - Found Factually Innocent": FI
+      - "**RV** - Guilty / Conviction Reversed or Vacated": RV
+      - "**P** - Guilty / Conviction with a Pardon from the Governor": P
+      - "**CE** - Guilty / Conviction with a Certificate of Eligibility for Expungement from Prisoner Review Board": CE
 ---
 id: no cases kickout
 event: no_cases_kickout
@@ -847,3 +929,446 @@ content: |
   
   [Illinois Legal Aid Online](https://www.illinoislegalaid.org)
 ---
+objects:
+  - instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", has_addendum=False)
+  - request: ALDocument.using(title="Request to Expunge Juvenile Records", filename="request.pdf", has_addendum=False)
+  - order_denying_request: ALDocument.using(title="Order Denying Request (draft)", filename="order_denying_request.pdf", has_addendum=False)
+  - change_of_address: ALDocument.using(title="Change of Address (draft)", filename="change_of_address.pdf", has_addendum=False)
+  - notice: ALDocument.using(title="Notice of Filing", filename="notice_of_filing.pdf", has_addendum=False)
+---
+generic object: ALIndividual
+objects:
+  - x.agencies: ALDocument.using(title="Additional Arresting Agencies", filename="additional_agencies.pdf", has_addendum=False)
+---
+objects:
+  - arrests[i].order: ALDocument.using(title="Order to Expunge Juvenile Records (draft)", filename="order_to_expunge.pdf", has_addendum=False)
+  - arrests[i].records: ALDocument.using(title="Additional Records for Expungement", filename="records.pdf", has_addendum=False)
+  - all_numbers[i].case_list: ALDocument.using(title="Case List", filename="case_list.pdf", has_addendum=False)
+---
+objects: 
+  - order_bundle: ALDocumentBundle.using(elements=[], title="Order to Expunge", filename="order.pdf", has_addendum=False)
+  - case_list_bundle: ALDocumentBundle.using(elements=[], title="Case List for Request", filename="case_list.pdf", has_addendum=False)
+  - records_bundle: ALDocumentBundle.using(elements=[], title="Additional Records for Expungement", filename="records.pdf", has_addendum=False)
+  - agencies_bundle: ALDocumentBundle.using(elements=[], title="Additional Arresting Agencies", filename="agencies.pdf", has_addendum=False)
+---
+code: |
+  instructions.enabled = True
+  request_bundle.enabled = True
+  request.enabled = True
+  order_bundle.enabled = True
+  order_denying_request.enabled = True
+  change_of_address.enabled = True
+  notice.enabled = True
+
+---
+objects:
+  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, request_bundle, case_list_bundle, notice, change_of_address, order_bundle, order_denying_request], filename="juvenile_expungement_forms.pdf", title="All forms")
+  #- al_court_bundle: ALDocumentBundle.using(elements=[request_bundle, order_denying_request], filename="expungement_forms.pdf", title="All forms")
+---
+objects:
+  - request_bundle: ALDocumentBundle.using(elements=[request, records_bundle, agencies_bundle], filename="request.pdf", title="Request to Expunge Juvenile Records")
+---
+attachment:
+  variable name: instructions[i]
+  name: instructions
+  filename: instructions
+  editable: False
+  skip undefined: True
+  pdf template file: juvenile_expungement_instructions.pdf  
+  fields:
+    - "fake": ${ "" }
+---
+attachment:
+  variable name: request[i]
+  name: request
+  filename: request
+  editable: False
+  skip undefined: True
+  pdf template file: juvenile_expungement_request.pdf  
+  fields:
+    - "filing_county": ${ filing_location.county }
+    - "user_name_1": ${users[0].name_full()}
+    - "user_name_2": ${users[0].name_full()}
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
+    - "user_birth_date": ${users[0].birthdate}
+    - "ir_number": ${ir_number if ir_number_check else ""}
+    - "case_number_1": ${case_number}
+    - "case_number_2": ${case_number}
+    - "case_number_3": ${case_number}
+    - "case_number_4": ${case_number}
+    - "arrest_1_number": ${arrests[0].case_number}
+    - "arrest_2_number": ${arrests[1].case_number}
+    - "arrest_3_number": ${arrests[2].case_number}
+    - "arrest_4_number": ${arrests[3].case_number}
+    - "arrest_5_number": ${arrests[4].case_number}
+    - "arrest_6_number": ${arrests[5].case_number}
+    - "arrest_7_number": ${arrests[6].case_number}
+    - "arrest_8_number": ${arrests[7].case_number}
+    - "arrest_9_number": ${arrests[8].case_number}
+    - "arrest_10_number": ${arrests[9].case_number}
+    - "arrest_1_lern": ${arrests[0].enforcement_number}
+    - "arrest_2_lern": ${arrests[1].enforcement_number}
+    - "arrest_3_lern": ${arrests[2].enforcement_number}
+    - "arrest_4_lern": ${arrests[3].enforcement_number}
+    - "arrest_5_lern": ${arrests[4].enforcement_number}
+    - "arrest_6_lern": ${arrests[5].enforcement_number}
+    - "arrest_7_lern": ${arrests[6].enforcement_number}
+    - "arrest_8_lern": ${arrests[7].enforcement_number}
+    - "arrest_9_lern": ${arrests[8].enforcement_number}
+    - "arrest_10_lern": ${arrests[9].enforcement_number}
+    - "arrest_1_agency": ${arrests[0].agency.name.first}
+    - "arrest_2_agency": ${arrests[1].agency.name.first}
+    - "arrest_3_agency": ${arrests[2].agency.name.first}
+    - "arrest_4_agency": ${arrests[3].agency.name.first}
+    - "arrest_5_agency": ${arrests[4].agency.name.first}
+    - "arrest_6_agency": ${arrests[5].agency.name.first}
+    - "arrest_7_agency": ${arrests[6].agency.name.first}
+    - "arrest_8_agency": ${arrests[7].agency.name.first}
+    - "arrest_9_agency": ${arrests[8].agency.name.first}
+    - "arrest_10_agency": ${arrests[9].agency.name.first}
+    - "arrest_1_charges": ${arrests[0].charge}
+    - "arrest_2_charges": ${arrests[1].charge}
+    - "arrest_3_charges": ${arrests[2].charge}
+    - "arrest_4_charges": ${arrests[3].charge}
+    - "arrest_5_charges": ${arrests[4].charge}
+    - "arrest_6_charges": ${arrests[5].charge}
+    - "arrest_7_charges": ${arrests[6].charge}
+    - "arrest_8_charges": ${arrests[7].charge}
+    - "arrest_9_charges": ${arrests[8].charge}
+    - "arrest_10_charges": ${arrests[9].charge}
+    - "arrest_1_date": ${arrests[0].date}
+    - "arrest_2_date": ${arrests[1].date}
+    - "arrest_3_date": ${arrests[2].date}
+    - "arrest_4_date": ${arrests[3].date}
+    - "arrest_5_date": ${arrests[4].date}
+    - "arrest_6_date": ${arrests[5].date}
+    - "arrest_7_date": ${arrests[6].date}
+    - "arrest_8_date": ${arrests[7].date}
+    - "arrest_9_date": ${arrests[8].date}
+    - "arrest_10_date": ${arrests[9].date}
+    - "arrest_1_outcome": ${arrests[0].outcome}
+    - "arrest_2_outcome": ${arrests[1].outcome}
+    - "arrest_3_outcome": ${arrests[2].outcome}
+    - "arrest_4_outcome": ${arrests[3].outcome}
+    - "arrest_5_outcome": ${arrests[4].outcome}
+    - "arrest_6_outcome": ${arrests[5].outcome}
+    - "arrest_7_outcome": ${arrests[6].outcome}
+    - "arrest_8_outcome": ${arrests[7].outcome}
+    - "arrest_9_outcome": ${arrests[8].outcome}
+    - "arrest_10_outcome": ${arrests[9].outcome}
+    - "additional_arrests": ${True if arrests.number_gathered() > 10 else False}
+    - "subsection_1": |
+        % for arrest in arrests:
+        % if which_subsection(arrest) == "1":
+        True
+        % endif
+        % endfor 
+    - "subsection_2": |
+        % for arrest in arrests:
+        % if which_subsection(arrest) == "2":
+        True
+        % endif
+        % endfor 
+    - "e_signature": ${users[0].name_full() if e_signature else ""}
+    - "user_phone": ${phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else ""}
+    - "user_email": ${users[0].email if users[0].has_email_address else ""}
+    - "user_address": ${users[0].address.on_one_line(bare=True)}
+    - "for_self": ${ True}
+    - "lawyer_check": ${False}
+---
+attachment:
+  variable name: order_denying_request[i]
+  name: order_denying_request
+  filename: order_denying_request
+  editable: False
+  skip undefined: True
+  pdf template file: juvenile_expungement_deny_order.pdf  
+  fields:
+    - "filing_county": ${ filing_location.county }
+    - "user_name_1": ${users[0].name_full()}
+    - "user_name_2": ${users[0].name_full()}
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
+    - "user_birth_date": ${users[0].birthdate}
+    - "ir_number": ${ir_number if ir_number_check else ""}
+    - "case_number": ${case_number}
+    - "user_phone": ${phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else ""}
+    - "user_email": ${users[0].email if users[0].has_email_address else ""}
+    - "user_address": ${users[0].address.on_one_line(bare=True)}
+    - "attorney_number": ${""}
+---
+attachment:
+  variable name: change_of_address[i]
+  name: change_of_address
+  filename: change_of_address
+  editable: True
+  skip undefined: True
+  pdf template file: juvenile_expungement_change_address.pdf  
+  fields:
+    - "filing_county": ${ filing_location.county }
+    - "user_name": ${users[0].name_full()}
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
+    - "user_birth_date": ${users[0].birthdate}
+    - "ir_number": ${ir_number if ir_number_check else ""}
+    - "case_number": ${case_number}
+---
+attachment:
+  variable name: notice[i]
+  name: notice
+  filename: notice
+  editable: False
+  skip undefined: True
+  pdf template file: juvenile_expungement_notice.pdf  
+  fields:
+    - "filing_county_1": ${ filing_location.county }
+    - "filing_county_2": ${ filing_location.county }
+    - "filing_county_3": ${ filing_location.county }
+    - "user_name_1": ${users[0].name_full()}
+    - "user_name_2": ${users[0].name_full()}
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
+    - "user_birth_date": ${users[0].birthdate}
+    - "ir_number": ${ir_number if ir_number_check else ""}
+    - "case_number_1": ${case_number}
+    - "case_number_1": ${case_number}
+    - "e_signature": ${users[0].name_full() if e_signature else ""}
+    - "user_phone": ${phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else ""}
+    - "user_email": ${users[0].email if users[0].has_email_address else ""}
+    - "user_address": ${users[0].address.on_one_line(bare=True)}
+    - "for_self": ${ True}
+    - "lawyer_check": ${False}
+    - "agency_1_name": ${agencies_list[0].name.first}
+    - "agency_1_street": ${agencies_list[0].address.line_one(bare=True)}
+    - "agency_1_csz": ${agencies_list[0].line_two()}
+    - "agency_2_name": ${agencies_list[1].name.first}
+    - "agency_2_street": ${agencies_list[1].address.line_one(bare=True)}
+    - "agency_2_csz": ${agencies_list[1].line_two()}
+    - "agency_3_name": ${agencies_list[2].name.first}
+    - "agency_3_street": ${agencies_list[2].address.line_one(bare=True)}
+    - "agency_3_csz": ${agencies_list[2].line_two()}
+    - "agency_4_name": ${agencies_list[3].name.first}
+    - "agency_4_street": ${agencies_list[3].address.line_one(bare=True)}
+    - "agency_4_csz": ${agencies_list[3].line_two()}
+    - "states_attorney_address": ${states_attorney_address.on_one_line(bare=True)}
+    - "additional_agencies": ${True if agencies_list.number_gathered() > 4 else False}
+---
+reconsider: True
+code: |
+  elements_for_order_bundle = []
+  elements_for_case_list_bundle = []
+  elements_for_records_bundle = []
+  elements_for_agencies_bundle = []
+  
+  for index, arrest in enumerate(arrests):
+    if index % 10 == 0:
+      arrest.index_for_order = index
+      elements_for_order_bundle.append(arrest.order)
+    if index > 9 and index % 5 == 0:
+      arrest.index_for_records = index
+      elements_for_records_bundle.append(arrest.records)
+  order_bundle.elements = elements_for_order_bundle
+  records_bundle.elements - elements_for_records_bundle
+
+  for index, number in enumerate(all_numbers):
+    if index % 64 == 0:
+      number.index_for_case_list = index
+      elements_for_case_list_bundle.append(number.case_list)
+  case_list_bundle.elements = elements_for_case_list_bundle
+
+  for index, agency in enumerate(agencies_list):
+    if index > 3 and index % 4:
+      agency.index_for_agencies = index
+      elements_for_agencies_bundle.append(agency.agencies)
+  agencies_bundle.elements = elements_for_agencies_bundle
+  
+  refresh_bundles = True
+---
+reconsider: True
+code: |
+  all_numbers = []
+  for arrest in arrests:
+    all_numbers.append(arrest.case_number)
+    if arrest.enforcement_number != "":
+      all_numbers.append(arrest.enforcement_number)
+  list_numbers = True
+---
+attachment:
+  variable name: arrests[i].order[j]
+  name: order
+  filename: order
+  editable: False
+  skip undefined: True
+  pdf template file: juvenile_expungement_approve_order.pdf  
+  fields:
+    - "filing_county": ${ filing_location.county }
+    - "user_name_1": ${ users[0].name_full() }
+    - "user_name_2": ${ users[0].name_full() }
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
+    - "user_birth_date": ${users[0].birthdate}
+    - "ir_number": ${ir_number if ir_number_check else ""}
+    - "case_number": ${case_number}
+    - "user_phone": ${phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else ""}
+    - "user_email": ${users[0].email if users[0].has_email_address else ""}
+    - "user_address": ${users[0].address.on_one_line(bare=True)}
+    - "arrest_1_number": ${arrests[i].case_number}
+    - "arrest_2_number": ${arrests[i+1].case_number}
+    - "arrest_3_number": ${arrests[i+2].case_number}
+    - "arrest_4_number": ${arrests[i+3].case_number}
+    - "arrest_5_number": ${arrests[i+4].case_number}
+    - "arrest_6_number": ${arrests[i+5].case_number}
+    - "arrest_7_number": ${arrests[i+6].case_number}
+    - "arrest_8_number": ${arrests[i+7].case_number}
+    - "arrest_9_number": ${arrests[i+8].case_number}
+    - "arrest_10_number": ${arrests[i+9].case_number}
+    - "additional_order": ${True if arrests.number_gathered() > (i+9) else False}
+---
+attachment:
+  variable name: all_numbers[i].case_list[j]
+  name: case_list
+  filename: case_list
+  editable: False
+  skip undefined: True
+  pdf template file: juvenile_expungement_case_list.pdf  
+  fields:
+    - "filing_county": ${ filing_location.county }
+    - "user_name": ${ users[0].name_full() }
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
+    - "user_birth_date": ${users[0].birthdate}
+    - "ir_number": ${ir_number if ir_number_check else ""}
+    - "case_number": ${case_number}
+    - "record_0": ${all_numbers[i]}
+    - "record_1": ${all_numbers[i+1]}
+    - "record_2": ${all_numbers[i+2]}
+    - "record_3": ${all_numbers[i+3]}
+    - "record_4": ${all_numbers[i+4]}
+    - "record_5": ${all_numbers[i+5]}
+    - "record_6": ${all_numbers[i+6]}
+    - "record_7": ${all_numbers[i+7]}
+    - "record_8": ${all_numbers[i+8]}
+    - "record_9": ${all_numbers[i+9]}
+    - "record_10": ${all_numbers[i+10]}
+    - "record_11": ${all_numbers[i+11]}
+    - "record_12": ${all_numbers[i+12]}
+    - "record_13": ${all_numbers[i+13]}
+    - "record_14": ${all_numbers[i+14]}
+    - "record_15": ${all_numbers[i+15]}
+    - "record_16": ${all_numbers[i+16]}
+    - "record_17": ${all_numbers[i+17]}
+    - "record_18": ${all_numbers[i+18]}
+    - "record_19": ${all_numbers[i+19]}
+    - "record_20": ${all_numbers[i+20]}
+    - "record_21": ${all_numbers[i+21]}
+    - "record_22": ${all_numbers[i+22]}
+    - "record_23": ${all_numbers[i+23]}
+    - "record_24": ${all_numbers[i+24]}
+    - "record_25": ${all_numbers[i+25]}
+    - "record_26": ${all_numbers[i+26]}
+    - "record_27": ${all_numbers[i+27]}
+    - "record_28": ${all_numbers[i+28]}
+    - "record_29": ${all_numbers[i+29]}
+    - "record_30": ${all_numbers[i+30]}
+    - "record_31": ${all_numbers[i+31]}
+    - "record_32": ${all_numbers[i+32]}
+    - "record_33": ${all_numbers[i+33]}
+    - "record_34": ${all_numbers[i+34]}
+    - "record_35": ${all_numbers[i+35]}
+    - "record_36": ${all_numbers[i+36]}
+    - "record_37": ${all_numbers[i+37]}
+    - "record_38": ${all_numbers[i+38]}
+    - "record_39": ${all_numbers[i+39]}
+    - "record_40": ${all_numbers[i+40]}
+    - "record_41": ${all_numbers[i+41]}
+    - "record_42": ${all_numbers[i+42]}
+    - "record_43": ${all_numbers[i+43]}
+    - "record_44": ${all_numbers[i+44]}
+    - "record_45": ${all_numbers[i+45]}
+    - "record_46": ${all_numbers[i+46]}
+    - "record_47": ${all_numbers[i+47]}
+    - "record_48": ${all_numbers[i+48]}
+    - "record_49": ${all_numbers[i+49]}
+    - "record_50": ${all_numbers[i+50]}
+    - "record_51": ${all_numbers[i+51]}
+    - "record_52": ${all_numbers[i+52]}
+    - "record_53": ${all_numbers[i+53]}
+    - "record_54": ${all_numbers[i+54]}
+    - "record_55": ${all_numbers[i+55]}
+    - "record_56": ${all_numbers[i+56]}
+    - "record_57": ${all_numbers[i+57]}
+    - "record_58": ${all_numbers[i+58]}
+    - "record_59": ${all_numbers[i+59]}
+    - "record_60": ${all_numbers[i+60]}
+    - "record_61": ${all_numbers[i+61]}
+    - "record_62": ${all_numbers[i+62]}
+    - "record_63": ${all_numbers[i+63]}
+    - "more_numbers": ${True if all_numbers.number_gathered() > (i+63) else False}
+---
+attachment:
+  variable name: arrests[i].records[j]
+  name: records
+  filename: records
+  editable: False
+  skip undefined: True
+  pdf template file: juvenile_expungement_records.pdf  
+  fields:
+    - "filing_county": ${ filing_location.county }
+    - "user_name": ${ users[0].name_full() }
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
+    - "user_birth_date": ${users[0].birthdate}
+    - "ir_number": ${ir_number if ir_number_check else ""}
+    - "case_number": ${case_number}
+    - "arrest_1_number": ${arrests[i].case_number}
+    - "arrest_2_number": ${arrests[i+1].case_number}
+    - "arrest_3_number": ${arrests[i+2].case_number}
+    - "arrest_4_number": ${arrests[i+3].case_number}
+    - "arrest_5_number": ${arrests[i+4].case_number}
+    - "arrest_1_lern": ${arrests[i].enforcement_number}
+    - "arrest_2_lern": ${arrests[i+1].enforcement_number}
+    - "arrest_3_lern": ${arrests[i+2].enforcement_number}
+    - "arrest_4_lern": ${arrests[i+3].enforcement_number}
+    - "arrest_5_lern": ${arrests[i+4].enforcement_number}
+    - "arrest_1_agency": ${arrests[i].agency.name.first}
+    - "arrest_2_agency": ${arrests[i+1].agency.name.first}
+    - "arrest_3_agency": ${arrests[i+2].agency.name.first}
+    - "arrest_4_agency": ${arrests[i+3].agency.name.first}
+    - "arrest_5_agency": ${arrests[i+4].agency.name.first}
+    - "arrest_1_charges": ${arrests[i].charge}
+    - "arrest_2_charges": ${arrests[i+1].charge}
+    - "arrest_3_charges": ${arrests[i+2].charge}
+    - "arrest_4_charges": ${arrests[i+3].charge}
+    - "arrest_5_charges": ${arrests[i+4].charge}
+    - "arrest_1_date": ${arrests[i].date}
+    - "arrest_2_date": ${arrests[i+1].date}
+    - "arrest_3_date": ${arrests[i+2].date}
+    - "arrest_4_date": ${arrests[i+3].date}
+    - "arrest_5_date": ${arrests[i+4].date}
+    - "arrest_1_outcome": ${arrests[i].outcome}
+    - "arrest_2_outcome": ${arrests[i+1].outcome}
+    - "arrest_3_outcome": ${arrests[i+2].outcome}
+    - "arrest_4_outcome": ${arrests[i+3].outcome}
+    - "arrest_5_outcome": ${arrests[i+4].outcome}
+---
+generic object: DAObject
+attachment:
+  variable name: x.agencies[i]
+  name: agencies
+  filename: agencies
+  editable: False
+  skip undefined: True
+  pdf template file: juvenile_expungement_agencies.pdf  
+  fields:
+    - "filing_county": ${ filing_location.county }
+    - "user_name": ${ users[0].name_full() }
+    - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
+    - "user_birth_date": ${users[0].birthdate}
+    - "ir_number": ${ir_number if ir_number_check else ""}
+    - "case_number": ${case_number}
+    - "agency_1_name": ${x.name.first}
+    - "agency_1_street": ${x.address.line_one(bare=True)}
+    - "agency_1_csz": ${x.line_two()}
+    - "agency_2_name": ${agencies_list[x.index_for_agencies+1].name.first}
+    - "agency_2_street": ${agencies_list[x.index_for_agencies+1].address.line_one(bare=True)}
+    - "agency_2_csz": ${agencies_list[x.index_for_agencies+1].line_two()}
+    - "agency_3_name": ${agencies_list[x.index_for_agencies+2].name.first}
+    - "agency_3_street": ${agencies_list[x.index_for_agencies+2].address.line_one(bare=True)}
+    - "agency_3_csz": ${agencies_list[x.index_for_agencies+2].line_two()}
+    - "agency_4_name": ${agencies_list[x.index_for_agencies+3].name.first}
+    - "agency_4_street": ${agencies_list[x.index_for_agencies+3].address.line_one(bare=True)}
+    - "agency_4_csz": ${agencies_list[x.index_for_agencies+3].line_two()}
