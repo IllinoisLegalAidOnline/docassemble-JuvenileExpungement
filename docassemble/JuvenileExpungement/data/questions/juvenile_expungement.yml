@@ -13,7 +13,9 @@ include:
 objects:
   - users: ALPeopleList.using(there_are_any=True)
   - arrests: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True)
+  - all_numbers: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True)
   - arrests[i].agency: ALIndividual
+  - agencies_list: ALPeopleList.using(there_are_any=True)
   - filing_location: ALAddress
   - states_attorney_address: ALAddress
   - court_list: ALCourtLoader.using(file_name='docassemble.ILAO:data/sources/il_courts.xlsx')
@@ -66,7 +68,7 @@ code: |
   users[0].has_other_names
   users[0].birthdate
   users[0].address.address
-  users[0].has_email
+  users[0].has_email_address
   change_address
   states_attorney_address.address
   e_signature
@@ -113,7 +115,7 @@ code: |
         return False
       elif arrest.found_guilty == "felony_or_a" and (arrest.must_register or arrest.case_end_date > today().minus(years=2)):
         return False
-    elif (arrest.after_arrest == "successful_supervision" or (arrest.after_arrest == "failed_supervision" and not arrest_after_arrest == "no_charge")) and arrest.must_register:
+    elif (arrest.after_arrest == "successful_supervision" or arrest.after_arrest == "failed_supervision") and arrest.must_register:
       return False
     return True
 ---
@@ -172,7 +174,7 @@ subquestion: |
   
   The forms you make with this program can only be used in Illinois.
   
-  To learn more, read ILAO's article,[**Juvenile expungement basics**](https://www.illinoislegalaid.org/node/51836).
+  To learn more, read ILAO's article, [**Juvenile expungement basics**](https://www.illinoislegalaid.org/node/51836).
 field: sees_nav_bar
 ---
 id: instructions
@@ -212,7 +214,7 @@ continue button field: about_expungement
 question: | 
   About expungement 
 subquestion: | 
-  Some juvenile arrests and court records can expunged. To 'expunge' means to erase the police and court records of the case. 
+  Some juvenile arrests and court records can be expunged. To **expunge** means to erase the police and court records of the case. 
 
   This program will create a *Request to Expunge Juvenile Records*. This form will include any of your eligible juvenile arrests and court records. You can only include court records from one county in the request. If you need to expunge records in more than one county, you will need to run this program again to make more forms.
 
@@ -288,7 +290,7 @@ question: |
 subquestion: |
   Juvenile arrest records are available at the Juvenile Courthouse located at 1100 South Hamilton in Chicago. You can also get assistance from [**Legal Aid Chicago’s Juvenile Expungement Help Desk**](https://legalaidchicago.org/get-help/court-based-help-desks/).  If you were arrested by the Chicago Police Department, you can also get your RAP sheet from them.
 
-  In the rest of Illinois, you can get your records from the agency that arrested you or through the Ilinois State Police's  Access and Review Process.
+  In the rest of Illinois, you can get your records from the agency that arrested you or through the Illinois State Police's Access and Review Process.
 
   For more information, you can read the Illinois Courts instructions on [**how to expunge juvenile records**](https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/expungement-sealing/).
 
@@ -364,7 +366,7 @@ template: seventeen_years
 subject: |
   **What if I was arrested when I was 17 years old?**
 content: |
-  If you were arrested before 2010, you were given an adult record
+  If you were arrested before 2010, you were given an adult record.
 
   If you were arrested between 2010 and 2013, you may have gotten a juvenile record. At that time, 17-year-olds arrested for misdemeanors got juvenile records and 17-year-olds arrested for felonies got adult records.
 
@@ -380,7 +382,7 @@ fields:
 id: other names
 question: |
   Do you have any other names that were used in your cases or arrests?
-subquestions: |
+subquestion: |
   If you used other names, list them here. This can help make sure the correct records are expunged or sealed.
 fields:
   - no label: users[0].has_other_names
@@ -425,7 +427,7 @@ subject: |
 content: |
   While this program creates a *Request to expunge juvenile records* that can expunge more than one arrest, they must be from the same county.
   
-  If I have records in more than one county, you will have to use this program more than once to create forms for each county. 
+  If you have records in more than one county, you will have to use this program more than once to create forms for each county. 
 ---
 code: |
   filing_location.trial_court_index
@@ -450,9 +452,9 @@ continue button field: arrests_intro
 question: |
   Arrests and court records
 subquestion: |
-  The next screens will ask about your juvenile records. These include your arrest records and your court file. The questions will ask details to check if the arrests and prosecutions are eligible for expungment.
+  The next screens will ask about your juvenile records. These include your arrest records and your court file. The questions will ask details to check if the arrests and prosecutions are eligible for expungement.
   
-  This program will only work for the arrests and prosecutions it finds expungable. Even if this program says a case is not expungable, there may be other ways to remove it from your record. You may want to talk to a lawyer about expungment. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area. 
+  This program will only work for the arrests and prosecutions it finds expungeable. Even if this program says a case is not expungeable, there may be other ways to remove it from your record. You may want to talk to a lawyer about expungement. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area. 
 ---
 id: arrest date
 question: |
@@ -460,7 +462,7 @@ question: |
 subquestion: |
    ${collapse_template(where_to_find_records_help)}
 fields:
-  - Date: arrests[i].arrest_date
+  - Date: arrests[i].date
     datatype: date
     max: ${users[0].birthdate.plus(years=18)}
     min: ${users[0].birthdate}
@@ -476,7 +478,7 @@ choices:
   - I was released without being charged in court.: no_charge
   - I was given a diversion program at the police station or at the probation department.: diversion
   - I was given supervision, which the court said was completed successfully.: successful_supervision
-  - I was given supervision, which the court said was **not** completed successfully.: falied_supervision
+  - I was given supervision, which the court said was **not** completed successfully.: failed_supervision
   - I went to court (saw a judge).: court
 ---
 id: at court
@@ -528,7 +530,7 @@ subquestion: |
 
   You should enter the date when the case ended. If you were sentenced or put on probation, enter the last day of your sentence or probation.
 
-  **Note:** If a judge adjudicated you delinquent (found youguilty) of a Class A misdemeanor or a felony, you must wait at least 2 years after your court case ended, including the end of any sentence.
+  **Note:** If a judge adjudicated you delinquent (found you guilty) of a Class A misdemeanor or a felony, you must wait at least 2 years after your court case ended, including the end of any sentence.
 fields:
   - Date: arrests[i].case_end_date
     max: today()
@@ -626,7 +628,10 @@ fields:
     input type: radio
     choices:
       code: |
-          agencies_list + "Another agency"
+          [
+            {agency.name.first: agency}
+            for agency in agencies_list
+          ] + [{"Another agency": "other"}]
   - Agency name: arrests[i].agency.name.first
     maxlength: 35
     show if: arrests[i].agency_option == "other"
@@ -684,7 +689,7 @@ fields:
     maxlength: 20
     required: False
 ---
-id: law enforcment record number
+id: law enforcement record number
 question: |
   What is the law enforcement record number for the ${arrests[i].date} arrest?
 subquestion: |
@@ -718,7 +723,7 @@ fields:
       - "**RWC** - Released Without Charge": RWC
       - "**DA** - Dismissal or Acquittal, Finding of No Probable Cause (FNPC), Found Not Guilty (FNG), Nolle Prosequi, Non-Suit, Stricken Off with Leave to Reinstate (SOL)": DA
       - "**S** - Court Supervision, Completed successfully": S
-      - "**QP** - First Offender Drug Probation or Qualified Probation, Completed successfully Completed": QP
+      - "**QP** - First Offender Drug Probation or Qualified Probation, Completed successfully": QP
       - "**FI** - Found Factually Innocent": FI
       - "**RV** - Guilty / Conviction Reversed or Vacated": RV
       - "**P** - Guilty / Conviction with a Pardon from the Governor": P
@@ -729,7 +734,7 @@ event: no_cases_kickout
 question: |
   Sorry
 subquestion: |
-  Based on your ansers, none of the arrests you have entered qualify for expungement.
+  Based on your answers, none of the arrests you have entered qualify for expungement.
 
   You can talk with a lawyer to discuss your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
 
@@ -992,10 +997,10 @@ attachment:
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
-    - "case_number_1": ${case_number}
-    - "case_number_2": ${case_number}
-    - "case_number_3": ${case_number}
-    - "case_number_4": ${case_number}
+    - "case_number_1": ${""}
+    - "case_number_2": ${""}
+    - "case_number_3": ${""}
+    - "case_number_4": ${""}
     - "arrest_1_number": ${arrests[0].case_number}
     - "arrest_2_number": ${arrests[1].case_number}
     - "arrest_3_number": ${arrests[2].case_number}
@@ -1090,7 +1095,7 @@ attachment:
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
-    - "case_number": ${case_number}
+    - "case_number": ${""}
     - "user_phone": ${phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else ""}
     - "user_email": ${users[0].email if users[0].has_email_address else ""}
     - "user_address": ${users[0].address.on_one_line(bare=True)}
@@ -1109,7 +1114,7 @@ attachment:
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
-    - "case_number": ${case_number}
+    - "case_number": ${""}
 ---
 attachment:
   variable name: notice[i]
@@ -1127,8 +1132,8 @@ attachment:
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
-    - "case_number_1": ${case_number}
-    - "case_number_1": ${case_number}
+    - "case_number_1": ${""}
+    - "case_number_2": ${""}
     - "e_signature": ${users[0].name_full() if e_signature else ""}
     - "user_phone": ${phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else ""}
     - "user_email": ${users[0].email if users[0].has_email_address else ""}
@@ -1165,7 +1170,7 @@ code: |
       arrest.index_for_records = index
       elements_for_records_bundle.append(arrest.records)
   order_bundle.elements = elements_for_order_bundle
-  records_bundle.elements - elements_for_records_bundle
+  records_bundle.elements = elements_for_records_bundle
 
   for index, number in enumerate(all_numbers):
     if index % 64 == 0:
@@ -1174,7 +1179,7 @@ code: |
   case_list_bundle.elements = elements_for_case_list_bundle
 
   for index, agency in enumerate(agencies_list):
-    if index > 3 and index % 4:
+    if index > 3 and index % 4 == 0:
       agency.index_for_agencies = index
       elements_for_agencies_bundle.append(agency.agencies)
   agencies_bundle.elements = elements_for_agencies_bundle
@@ -1183,7 +1188,7 @@ code: |
 ---
 reconsider: True
 code: |
-  all_numbers = []
+  all_numbers.clear()
   for arrest in arrests:
     all_numbers.append(arrest.case_number)
     if arrest.enforcement_number != "":
@@ -1204,7 +1209,7 @@ attachment:
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
-    - "case_number": ${case_number}
+    - "case_number": ${""}
     - "user_phone": ${phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else ""}
     - "user_email": ${users[0].email if users[0].has_email_address else ""}
     - "user_address": ${users[0].address.on_one_line(bare=True)}
@@ -1233,7 +1238,7 @@ attachment:
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
-    - "case_number": ${case_number}
+    - "case_number": ${""}
     - "record_0": ${all_numbers[i]}
     - "record_1": ${all_numbers[i+1]}
     - "record_2": ${all_numbers[i+2]}
@@ -1298,7 +1303,7 @@ attachment:
     - "record_61": ${all_numbers[i+61]}
     - "record_62": ${all_numbers[i+62]}
     - "record_63": ${all_numbers[i+63]}
-    - "more_numbers": ${True if all_numbers.number_gathered() > (i+63) else False}
+    - "more_numbers": ${True if all_numbers.number_gathered() > (i+64) else False}
 ---
 attachment:
   variable name: arrests[i].records[j]
@@ -1313,7 +1318,7 @@ attachment:
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
-    - "case_number": ${case_number}
+    - "case_number": ${""}
     - "arrest_1_number": ${arrests[i].case_number}
     - "arrest_2_number": ${arrests[i+1].case_number}
     - "arrest_3_number": ${arrests[i+2].case_number}
@@ -1359,7 +1364,7 @@ attachment:
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
-    - "case_number": ${case_number}
+    - "case_number": ${""}
     - "agency_1_name": ${x.name.first}
     - "agency_1_street": ${x.address.line_one(bare=True)}
     - "agency_1_csz": ${x.line_two()}
