@@ -1,0 +1,849 @@
+metadata:
+  title: Expunge juvenile records
+  short title: Expunge juvenile records
+  comment: This program helps you ask the court to expunge arrests and convictions from your juvenile criminal record.
+  authors:
+    - Vivian McNaughton
+---
+include:
+  - docassemble.AssemblyLine:assembly_line.yml
+  - docassemble.ILAO:ilao-interview-framework.yml
+  - docassemble.ILAO:shared-basic-questions.yml
+---
+objects:
+  - users: ALPeopleList.using(there_are_any=True)
+  - arrests: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True)
+  - arrests[i].agency: ALIndividual
+  - filing_location: ALAddress
+  - states_attorney_address: ALAddress
+  - court_list: ALCourtLoader.using(file_name='docassemble.ILAO:data/sources/il_courts.xlsx')
+  - cook_preview: DAStaticFile.using(filename="cook_county_and_chicago_examples.pdf")
+  - il_preview: DAStaticFile.using(filename="illinois_not_cook_examples.pdf")
+---
+code: |
+  al_form_type = 'starts_case'
+  ilao_easy_form_title = "Expunge juvenile records"
+  ilao_easy_form_url = "https://www.illinoislegalaid.org/legal-information/expunge-juvenile-records"
+  form_name = "Request to Expunge Juvenile Records"
+  github_user = 'IllinoisLegalAidOnline'
+  github_repo_name = 'docassemble-JuvenileExpungement'
+  allowed_courts = ['Circuit']
+---
+sections:
+  - section_intro: Start
+  - section_records: Your records
+  - section_filing: Filing details
+  - section_download: Download
+---
+#interview order block
+mandatory: True
+code: |
+  nav.set_section('section_intro')
+  sees_nav_bar
+  snapshot_start
+  how_to_use
+  about_expungement
+  accept_terms
+  about_juvenile_records
+  if read_or_skip:
+    expungement_info
+    more_expungement_info
+    records_info
+    more_records_info
+
+
+  nav.set_section('section_records')
+  if filing_location.county == "Cook":
+    ir_number_check
+  arrests_intro
+  arrests.gather()
+  filter_arrests
+  if qualified_arrests.number_gathered() == 0:
+    no_cases_kickout
+
+  nav.set_section('section_filing')
+  users[0].name.first
+  users[0].birthdate
+  users[0].address.address
+  users[0].has_email
+  change_address
+  states_attorney_address.address
+  e_signature
+  next_steps
+
+  nav.set_section('section_download')
+  forms_assembling
+  snapshot_forms
+  get_docs_screen
+
+---
+#arrests gather loop
+code: |
+  arrests[i].date
+  if arrests[i].after_arrest == "court":
+    if arrests[i].at_court == "other":
+      if arrests[i].found_guilty == "other" or arrests[i].found_guilty == "traffic" or arrests[i].found_guilty == "murder":
+        arrests[i].cannot_expunge_offense_type
+      elif arrests[i].found_guilty == "felony_or_a":
+        if arrests[i].must_register:
+          arrests[i].cannot_expunge_registry
+        elif arrests[i].case_end_date > today().minus(years=2):
+          arrests[i].cannot_expunge_recent
+  elif arrests[i].after_arrest == "successful_supervision" or arrests[i].after_arrest == "failed_supervision":
+    if arrests[i].must_register:
+      arrests[i].cannot_expunge_registry
+    
+  if is_eligible(arrests[i]):
+    arrests[i].charge
+    arrests[i].agency.name.first
+    arrests[i].case_number
+    arrests[i].enforcement_number
+
+  arrests[i].complete = True
+---
+code: |
+  def is_eligible(arrest):
+    if arrest.after_arrest == "court" and arrest.at_court == "other":
+      if arrest.found_guilty == "other" or arrest.found_guilty == "traffic" or arrest.found_guilty == "murder":
+        return False
+      elif arrest.found_guilty == "felony_or_a" and (arrest.must_register or arrest.case_end_date > today().minus(years=2)):
+        return False
+    elif (arrest.after_arrest == "successful_supervision" or (arrest.after_arrest == "failed_supervision" and not arrest_after_arrest == "no_charge")) and arrest.must_register:
+      return False
+    return True
+---
+code: |
+  def which_subsection(arrest):
+    if arrest.after_arrest == "court" and arrest.at_court == "other" and arrest.found_guilty == "felony_or_a":
+      return "2"
+    else:
+      return "1"
+---
+reconsider: True
+code: |
+  qualified_arrests = [arrest for arrest in arrests if is_eligible(arrest) == True]
+  filter_arrests = True
+---
+code: |
+  stuff_to_snapshot = {
+  	'start_time': str(current_datetime().format_datetime()),
+  	'started_interview': True, 
+  	}
+
+  try:
+    stuff_to_snapshot['ip_address'] = device(ip=True)
+  except:
+    pass
+
+  stuff_to_snapshot['zip'] = showifdef('users[0].address.zip')
+
+  stuff_to_snapshot['downloaded_forms'] = showifdef('forms_assembling')
+  
+  try:
+    stuff_to_snapshot['session_id'] = current_context().session
+  except:
+    pass
+  
+  store_variables_snapshot(
+  	data=stuff_to_snapshot, persistent=True
+  	)
+  snapshot_interview_state = True
+---
+code: |
+  snapshot_interview_state
+  snapshot_start = True  
+---
+code: |
+  reconsider('snapshot_interview_state')
+  snapshot_forms = True
+---
+id: welcome
+question: |
+  Expunge juvenile records
+subquestion: |
+  Welcome to Illinois Legal Aid Online's **Expunge juvenile records** Easy Form.
+
+  This program will help you create forms to clear juvenile arrests and adjudications from your criminal record.
+  
+  The forms you make with this program can only be used in Illinois.
+  
+  To learn more, read ILAO's article,[**Juvenile expungement basics**](https://www.illinoislegalaid.org/node/51836).
+field: sees_nav_bar
+---
+id: instructions
+continue button field: how_to_use
+question: |
+  Instructions
+subquestion: |
+  To expunge a case with this program you will need to know the:
+  
+  * Arrest date,
+  * Arresting agency,
+  * Case number,
+  * Charge,
+  * Outcome, and
+  * Date of conviction
+    
+  This information may be found on:
+
+  * Court dispositions,
+  * Your Illinois State Police RAP sheet, or
+  * Your Chicago Police RAP sheet.
+  
+  Set aside 10 to 20 minutes to finish this program. You can log in and save your work to continue later. 
+ 
+  ${ collapse_template(help_example) }  
+
+  Click on **{green words}** to learn what they mean. Some pages have a question mark in a circle ${ fa_icon("question-circle", color_css="#0dcaf0" ) } that helps explain things.
+---
+template: help_example
+subject: |
+  **You can click sections like this to show more information.**
+content: |  
+  This is an example of help. Click again to hide.
+---
+id: about expungement 
+continue button field: about_expungement 
+question: | 
+  About expungement 
+subquestion: | 
+  Some juvenile arrests and court records can expunged. To 'expunge' means to erase the police and court records of the case. 
+
+  This program will create a *Request to Expunge Juvenile Records*. This form will include any of your eligible juvenile arrests and court records. You can only include court records from one county in the request. If you need to expunge records in more than one county, you will need to run this program again to make more forms.
+
+  If you have arrests involving cannabis, you may want to read ILAO's article, [**Cannabis legalization and expungement basics**](https://www.illinoislegalaid.org/legal-information/cannabis-legalization-and-expungement-basics). 
+
+  To learn more about expungement, read ILAO's article [**starting a request to expunge or seal a juvenile arrest record**](https://www.illinoislegalaid.org/legal-information/starting-request-expunge-or-seal-juvenile-arrest-record).
+---
+id: read or skip information
+question: |
+  More information about clearing your criminal record
+subquestion: |
+  To get detailed information about clearing your criminal record, you may want to start with ILAO's guide to [**Juvenile record expungement**](https://www.illinoislegalaid.org/node/51836).
+
+  You can also read more on the next four screens of this Easy Form. If you want to read more information now, click **Yes**. You can go through it before making your forms.
+
+  If you want to read more information later, click **No**. It is linked on any Review screen. Just click **:edit: Edit answers** later in the Easy Form.  Also, the information will be included in the instructions you can download when you get your forms.
+
+  **Note:** We recommend you read this information now. If you miss something, you can always come back to it later. 
+fields:
+  - Read more information about criminal records now?: read_or_skip
+    datatype: yesnoradio
+---
+id: expungement info
+continue button field: expungement_info
+question: |
+  Clearing your criminal record in Illinois
+subquestion: |
+  When you are arrested or charged with an offense, a criminal record is created, even if you are not found guilty. Juvenile records can be read by law enforcement agencies, some employers, and some government agencies. To have your records erased or hidden you must file a *${ form_name }* with the court and have a judge approve your *Request*.
+
+  There are three ways to clear your criminal record:
+
+  * **Expungement**: Erases arrests, dismissed charges, court supervisions, and qualified probations that were completed successfully from your criminal record so it is like they never happened.
+  * **Sealing**: Juvenile records are automatically sealed. However, law enforcement agencies can still see sealed records. Employers required by law to conduct background checks can see sealed felony convictions. They cannot see sealed misdemeanor convictions or cases not resulting in convictions unless the employer is a law enforcement agency.
+  * **Executive Clemency**: If you do not qualify for expungement, you can apply for a pardon from the Governor forgiving you for your criminal convictions. A pardon does not erase or hide your conviction on its own. If you get a pardon authorizing expungement, you can then apply to have your record expunged. To learn more about getting a pardon, read ILAO's article about [**executive clemency**](https://www.illinoislegalaid.org/node/37761).
+---
+id: more expungement info
+continue button field: more_expungement_info
+question: |
+  Obstacles to clearing your criminal records
+subquestion: |
+  You might not be eligible for getting your criminal records expunged or sealed if:
+  
+  * You have any pending criminal charges,
+  * You have not completed your sentence, including parole, probation, or court supervision,
+  * Your records for some offenses are not eligible for expungement or sealing, or
+  * A required waiting period for sealing your offense has not passed yet.
+
+  Also, police departments and prosecutors for your criminal cases get a chance to object to your *Request* to expunge juvenile records.
+
+  * The police departments and prosecutors have 45 days from the day they receive your *Request* to file a written objection with the court. If they **object**, it means they do not want your record to be expunged or sealed. If the agencies do not object during the 45 days, they cannot object at a later time.
+  * An **objection** does not mean the court is denying your *Request*. The court will consider the objection when deciding if your criminal record will be expunged or sealed.
+---
+id: records info
+continue button field: records_info
+question: |
+  Two kinds of criminal records
+subquestion: |
+  There are two types of criminal records: court records and police records. You do not need to pay for copies of all of your criminal records.
+
+  **Court records**
+
+  * You will need records for all of your court cases. This may be called a "docket sheet" or a "disposition." A disposition is the final judgment or outcome in a court case. There are no court dispositions for arrests or charges that did not lead to a court case.
+
+  **Police records**
+
+  * An Illinois State Police Statewide Criminal History Transcript lists most arrests and convictions that happened in Illinois.
+  * A Chicago RAP Sheet (Record of Arrests and Prosecutions) lists all arrests, charges, and court case outcomes that happened in Chicago.
+---
+id: more records info
+continue button field: more_records_info
+question: |
+  How to view or get copies of your criminal records
+subquestion: |
+  Juvenile arrest records are available at the Juvenile Courthouse located at 1100 South Hamilton in Chicago. You can also get assistance from [**Legal Aid Chicago’s Juvenile Expungement Help Desk**](https://legalaidchicago.org/get-help/court-based-help-desks/).  If you were arrested by the Chicago Police Department, you can also get your RAP sheet from them.
+
+  In the rest of Illinois, you can get your records from the agency that arrested you or through the Ilinois State Police's  Access and Review Process.
+
+  For more information, you can read the Illinois Courts instructions on [**how to expunge juvenile records**](https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/expungement-sealing/).
+
+  Records from the **Circuit Clerk**: Many court records are available online. Some counties, like Cook County, do not provide online access to criminal records.
+  ${ collapse_template(clerk_records_help) } 
+  
+  Records from the **Illinois State Police**: You are allowed to access your entire criminal history information from the Illinois State Police. Although not required, it is the best available source for your statewide criminal record. Please note, there might be discrepancies or missing information.
+  ${ collapse_template(isp_records_help) }
+
+  Records from the **Chicago Police Department**: If you were arrested in Chicago, you must get your records from the Chicago Police Department. Order a RAP sheet from the Chicago Police Department if you were arrested in Chicago. There will be a fee.
+  ${ collapse_template(cpd_records_help) }
+---
+template: clerk_records_help
+subject: |
+  **How to access records from the Circuit Clerk**
+content: |  
+  If you cannot find your court records online, go to the Circuit Clerk's Office in the county where your case was filed. Ask the Circuit Clerk for the information you need to fill out the forms. This information can be found in your court records.
+  
+  You may be able to use the public computer at the Circuit Clerk's office to look up records and print them out or write down the information. Copies are available for a fee. Find your Circuit Clerk's website at: [ilcourts.info/clerks](https://ilcourts.info/clerks).
+---
+template: isp_records_help
+subject: |
+  **How to access records from the Illinois State Police**
+content: |
+  You can get a "Statewide Criminal History Transcript" in 3 ways:
+
+  * From the Illinois State Police:[NEWLINE]
+    Illinois State Police[NEWLINE]
+    Bureau of Identification[NEWLINE]
+    260 North Chicago Street[NEWLINE]
+    Joliet, Illinois 60432[NEWLINE]
+    (815) 740-5160[NEWLINE]
+    [isp.illinois.gov/BureauOfIdentification](https://isp.illinois.gov/BureauOfIdentification)
+
+  * From your local law enforcement agency:[NEWLINE]
+    Every law enforcement agency is allowed to provide you this information. Check with your local law enforcement agency to find out costs and times for fingerprinting.
+
+  * From any licensed LiveScan vendor to get your transcript using your fingerprint. Find a Fingerprint Vendor at the [Illinois Department of Financial and Professional Regulation](https://idfprapps.illinois.gov/licenselookup/fingerprintlist.asp) website.
+---
+template: cpd_records_help
+subject: |
+  **How to access records from the Chicago Police Department**
+content: |
+  To access records from the Chicago Police Department:
+  
+  * You must go to the Chicago Police Department to get your Chicago RAP sheet:[NEWLINE]
+    Chicago Police Headquarters[NEWLINE]
+    3510 S. Michigan Ave.[NEWLINE]
+    Chicago, IL[NEWLINE]
+    (312) 745-5508[NEWLINE]
+  
+  * You will receive your RAP sheet in the mail.
+  
+  * You should also request a copy of your Illinois State Police Statewide Criminal History Transcript. The Chicago Police will provide your state record for no additional cost.
+---
+id: about juvenile records
+continue button field: about_juvenile_records
+question: |
+  About juvenile records
+subquestion: |
+  A juvenile record is created when someone is arrested before their 18th birthday.
+
+  ${collapse_template(seventeen_years)}
+
+  A juvenile record of the arrest exists even if you never went to court or saw a judge. If you are unsure if you were arrested, you can contact the law enforcement agency that arrested you.
+
+  Juvenile records are automatically sealed. The public cannot see them without a court order. However, some employers and government agencies still have access unless the records are expunged.
+
+  If you were arrested when you were 18 or older, you may be able to expunge your adult records using ILAO's [**Criminal record expungement or sealing request Easy Form**](https://www.illinoislegalaid.org/legal-information/criminal-record-expungement-or-sealing-request).
+
+---
+template: seventeen_years
+subject: |
+  **What if I was arrested when I was 17 years old?**
+content: |
+  If you were arrested before 2010, you were given an adult record
+
+  If you were arrested between 2010 and 2013, you may have gotten a juvenile record. At that time, 17-year-olds arrested for misdemeanors got juvenile records and 17-year-olds arrested for felonies got adult records.
+
+  If you were arrested after 2013, you were given a juvenile record.
+---
+id: user name
+question: |
+  What is your name?
+fields:
+  code: |
+    users[0].name_fields()
+---
+id: user birthdate
+question: |
+   When were you born?
+fields:
+  - Date of birth: users[0].birthdate
+    datatype: BirthDate
+    alMax: ${today()}
+    alMin: '1/1/1901'
+---
+id: filing county
+question: |
+  Which county are you filing your request in?
+subquestion: |
+  You need to file in the county where you were arrested.
+  
+  ${collapse_template(multiple_counties)}
+fields:
+  - no label: filing_location.trial_court_index
+    code: |
+      ilao_court_county_lookup(court_list)
+validation code: |
+  if filing_location.trial_court_index == "-1":
+    trial_court = court_list.as_court('trial_court', 15)
+  else:
+    trial_court = court_list.as_court('trial_court', filing_location.trial_court_index)
+---
+template: multiple_counties
+subject: |
+  **What if I have arrests in more than one county?**
+content: |
+  While this program creates a *Request to expunge juvenile records* that can expunge more than one arrest, they must be from the same county.
+  
+  If I have records in more than one county, you will have to use this program more than once to create forms for each county. 
+---
+code: |
+  filing_location.trial_court_index
+  filing_location.county = trial_court.address.county
+---
+id: ir number
+question: |
+  Do you have an IR number?
+subquestion: |
+  An IR number is an Individual Record Number. It is tied to your fingerprints.
+
+  You can find your IR number on your RAP sheet. Not all agencies use IR numbers, so you might not have one.
+fields:
+  - no label: ir_number_check
+    datatype: yesnoradio
+  - IR number: ir_number
+    maxlength: 15
+    show if: ir_number_check
+---
+id: arrests records intro
+continue button field: arrests_intro
+question: |
+  Arrests and court records
+subquestion: |
+  The next screens will ask about your juvenile records. These include your arrest records and your court file. The questions will ask details to check if the arrests and prosecutions are eligible for expungment.
+  
+  This program will only work for the arrests and prosecutions it finds expungable. Even if this program says a case is not expungable, there may be other ways to remove it from your record. You may want to talk to a lawyer about expungment. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area. 
+---
+id: arrest date
+question: |
+  When was the date of the ${ordinal(i)} arrest?
+subquestion: |
+   ${collapse_template(where_to_find_records_help)}
+fields:
+  - Date: arrests[i].arrest_date
+    datatype: date
+    max: ${users[0].birthdate.plus(years=18)}
+    min: ${users[0].birthdate}
+    validation messages:
+      max: |
+        Only arrests from when you were under 18 years of age are juvenile records.
+---
+id: after arrest
+question: |
+  What happened after the ${arrests[i].arrest_date} arrest?
+field: arrests[i].after_arrest
+choices:
+  - I was released without being charged in court.: no_charge
+  - I was given a diversion program at the police station or at the probation department.: diversion
+  - I was given supervision, which the court said was completed successfully.: successful_supervision
+  - I was given supervision, which the court said was **not** completed successfully.: falied_supervision
+  - I went to court (saw a judge).: court
+---
+id: at court
+question: |
+  What happened when you went to court for the ${arrests[i].arrest_date} arrest?
+field: arrests[i].at_court
+choices:
+  - The case was thrown out (dismissed).: dismissed
+  - I was found not delinquent (not guilty).: delinquent
+  - Something else happened: other
+---
+id: found guilty
+question: |
+  Were you found guilty of any of the following?
+field: arrests[i].found_guilty
+choices:
+  - A traffic offense: traffic
+  - First-degree murder or a felony sex offense: murder
+  - A felony or class A misdemeanor: felony_or_a
+  - A Class B or Class C misdemeanor: b_or_c
+  - A petty offense: petty
+  - No, I was not found guilty of any of these.: other
+---
+id: arrest registry
+question: |
+  Did the court require you to register on the Juvenile Sex Offender Registry?
+subquestion: |
+  If you were found guilty for a sex offense, the court should have told you that you must register as a Juvenile Sex Offender.
+
+  To learn more about the Juvenile Sex Offender Registry, read ILAO's article, [**Can a sex offender be removed from the registry?**](https://www.illinoislegalaid.org/legal-information/appealing-my-registration-sex-offender).
+fields:
+  - no label: arrests[i].must_register
+    datatype: yesnoradio
+---
+id: arrest is expungeable
+continue button field: arrests[i].is_expungeable
+question: |
+  Good news!
+subquestion: |
+  The ${arrests[i].date} arrest is eligible to be expunged using this form.
+
+  **Note:** even though this case is eligible to be expunged, it is still up to the judge to decide.
+---
+id: juvenile case end date
+question:  |
+  When did this case's sentence end?
+subquestion: |
+  This includes juvenile probation, serving time in the Department of Juvenile Justice, and parole (IDJJ Aftercare).
+
+  You should enter the date when the case ended. If you were sentenced or put on probation, enter the last day of your sentence or probation.
+
+  **Note:** If a judge adjudicated you delinquent (found youguilty) of a Class A misdemeanor or a felony, you must wait at least 2 years after your court case ended, including the end of any sentence.
+fields:
+  - Date: arrests[i].case_end_date
+    max: today()
+---
+id: arrest cannot expunge offense type
+continue button field: arrests[i].cannot_expunge_offense_type
+question: |
+  The ${arrests[i].date} arrest cannot be expunged with this program.
+subquestion: |
+  % if arrests[i].found_guilty == "traffic":
+  You cannot use this program to expunge a traffic offense.
+  % elif arrests[i].found_guilty == "murder":
+  You cannot use this program to expunge a first-degree murder or a felony sex offense.
+  % else:
+  You cannot use this program to expunge a case where you were found guilty of something other than a felony, misdemeanor, or petty offense.
+  % endif
+  
+  You can talk with a lawyer to discuss your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  
+  % if i == 0:
+  Click **Back** if you made a mistake. Click **Next** if you would like to expunge a different arrest.
+  % elif i == 1:
+  Click **Back** if you made a mistake. Click **Next** if you would like to expunge another adjudication or expunge the arrest you have already entered.
+  % else:
+  Click **Back** if you made a mistake. Click **Next** if you would like to expunge another adjudication or expunge the arrests you have already entered.
+  % endif
+---
+id: arrest cannot expunge registry
+continue button field: arrests[i].cannot_expunge_registry
+question: |
+  The ${arrests[i].date} arrest cannot be expunged with this program.
+subquestion: |
+  You cannot use this program to expunge an offense that required you to register under the Sex Offender Registration Act.
+
+  You can talk with a lawyer to discuss your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  
+  % if i == 0:
+  Click **Back** if you made a mistake. Click **Next** if you would like to expunge a different arrest.
+  % elif i == 1:
+  Click **Back** if you made a mistake. Click **Next** if you would like to expunge another adjudication or expunge the arrest you have already entered.
+  % else:
+  Click **Back** if you made a mistake. Click **Next** if you would like to expunge another adjudication or expunge the arrests you have already entered.
+  % endif
+
+---
+id: arrest cannot expunge recent
+continue button field: arrests[i].cannot_expunge_recent
+question: |
+  The ${arrests[i].date} arrest cannot be expunged with this program.
+subquestion: |
+  You cannot use this program to expunge a sentence that ended less than two years ago.
+
+  You can talk with a lawyer to discuss your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  
+  % if i == 0:
+  Click **Back** if you made a mistake. Click **Next** if you would like to expunge a different arrest.
+  % elif i == 1:
+  Click **Back** if you made a mistake. Click **Next** if you would like to expunge another adjudication or expunge the arrest you have already entered.
+  % else:
+  Click **Back** if you made a mistake. Click **Next** if you would like to expunge another adjudication or expunge the arrests you have already entered.
+  % endif
+---
+id: charge offense
+question: |
+  What were you arrested for on ${arrests[i].date}?
+subquestion: |  
+  **Note**: If you were found guilty of something else due to this arrest, list that charge here. 
+
+  If there is more than one offense or charge, separate each one by a semicolon.
+fields:
+  - Offense: arrests[i].charge
+    input type: area
+    rows: 1
+    maxlength: 50
+---
+id: arresting agency
+question: |
+  What is the name and address of the law enforcement agency that arrested you?
+subquestion: |
+  This is often a police department.
+
+   ${collapse_template(where_to_find_records_help)}
+fields:
+  - Agency: arrests[i].agency.name.first
+    maxlength: 35
+  - Street address: arrests[i].agency.address.address
+    address autocomplete: True
+  - Address line 2: arrests[i].agency.address.unit
+    required: False
+  - City: arrests[i].agency.address.city
+  - State: arrests[i].agency.address.state
+    code: |
+      states_list()
+    default: IL      
+  - ZIP code: arrests[i].agency.address.zip
+---
+id: arrest case number
+question: |
+  What is the case number of your ${arrests[i].date} arrest?
+subquestion: |
+  **Note**: It is important to add the case number so the court case records and the arrest records can be expunged. If you know there is a court case but can't find the number, you can use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  
+  If you did not go to court for the ${arrests[i].date} arrest, you can leave this blank.
+
+   ${collapse_template(where_to_find_records_help)}
+fields:
+  - Case number: arrests[i].case_number
+    maxlength: 20
+    required: False
+---
+id: law enforcment record number
+question: |
+  What is the law enforcement record number for the ${arrests[i].date} arrest?
+subquestion: |
+  **Note**: It is important to add the law enforcement record number so the arrest records can be expunged. The number could be a Document Control Number (DCN) or a Central Booking number (CB). If you can't find the number you can use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find a lawyer near you.
+  
+  If there is no law enforcement record number, you can leave this blank.
+
+  ${collapse_template(where_to_find_records_help)}
+fields:
+  - Law enforcement record number: arrests[i].enforcement_number
+    maxlength: 20
+    required: False
+---
+template: where_to_find_records_help
+subject: |
+  **Where to find this information**
+content: |  
+  Your court records or RAP sheet should have this information. See where to find it on these examples:
+
+  * [**Cook County court disposition and a Chicago Police RAP sheet :external-link:**](${ cook_preview.url_for() })
+  
+  * [**Court record or docket sheet (outside of Cook County) and an Illinois State Police RAP sheet :external-link:**](${ il_preview.url_for() })
+---
+id: no cases kickout
+event: no_cases_kickout
+question: |
+  Sorry
+subquestion: |
+  Based on your ansers, none of the arrests you have entered qualify for expungement.
+
+  You can talk with a lawyer to discuss your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+
+  If you made a mistake, you can click the **Arrests** button to change your answers.
+buttons:
+  - Exit: exit
+  - Restart: restart
+---
+id: user address
+question: |
+  What is your mailing address?
+subquestion: |
+  **This address will appear on your court papers.** You may receive court notices and documents about your case at this address.
+
+  **Note:** If you want the court to send the order to another address, you can enter it on another screen. This should be your address.
+fields:
+  - Street address: users[0].address.address
+    address autocomplete: True
+  - Address line 2: users[0].address.unit
+    required: False
+  - City: users[0].address.city
+  - State: users[0].address.state
+    code: |
+      states_list()
+    default: IL      
+  - ZIP code: users[0].address.zip
+---
+id: your contact information
+question: |
+  What is your contact information?
+subquestion: |
+  The court or others might need to contact you about this case.
+
+  **This information will appear on your court forms.**
+  
+  If you do not want to list a phone number on your forms, leave it blank.
+
+  If you have an email address, you must list it. Be sure to check your email daily, otherwise you may miss important court documents or information about your case.
+
+  ${ collapse_template(contact_info_help) }  
+fields:  
+  - Phone number: users[0].phone_number
+    datatype: al_international_phone
+    required: False
+  - label: |
+      Do you have an email address?
+    field: users[0].has_email_address      
+    datatype: yesnoradio
+  - note: |
+      This email address will appear on your court forms. Be sure to check your email daily, otherwise you may miss important court documents or information about your case.
+    show if:
+      variable: users[0].has_email_address
+      is: True
+  - Email address: users[0].email    
+    datatype: email
+    show if: 
+      variable: users[0].has_email_address
+      is: True
+---
+template: contact_info_help
+subject: |
+  **What if I don't want to list my email address?**
+content: |  
+  If you do not want to enter your personal email address, you can create a new email account to get email about your case.
+  
+  To make a new email account try one of these email services:
+  
+  * [**Gmail**](https://accounts.google.com/SignUp)
+  * [**Outlook**](https://outlook.live.com/owa/?nlp=1&signup=1)
+  * [**Yahoo**](https://login.yahoo.com/account/create?.lang=en-US&.intl=us)
+---
+id: change address information
+continue button field: change_address
+question: |
+  About moving and changing your email address
+subquestion: |
+  If you move or change your email address before a judge hears your request, you will have to tell the court clerk.
+
+  This program will include a blank *Change of Address* form. If you move or change your email address, use the *Change of Address* form to tell the court your new mailing address or email address.
+---
+id: states attorney address
+question: |
+  What is the address of ${end_in_county(filing_location.county)}'s state's attorney?
+subquestion: | 
+  You should be able to find this address on the Internet. You can click [**Illinois ${end_in_county(filing_location.county)} State's Attorney address**](https://www.google.com/search?q=${filing_location.county}+county+illinois+state%27s+attorney%27s+office) to search for it using Google.
+  
+  If you do not know this now, you can add it to your forms later. You will need to add the State's Attorney's address before you file your forms.
+fields:
+  - Street address: states_attorney_address.address
+    address autocomplete: True
+    required: False
+  - Address line 2: states_attorney_address.unit
+    required: False
+  - City: states_attorney_address.city
+    required: False
+  - State: states_attorney_address.state
+    required: False
+    code: |
+      states_list() 
+  - ZIP code: states_attorney_address.zip
+    required: False
+---
+id: e-signature
+question: |
+  Do you want to add your e-signature to your forms?
+subquestion: |  
+  This program can put "**/s/ ${users[0].name_full()}**" where you would sign your name. The court will accept this as your signature.
+
+  If you do not add your **{e-signature}** now, you must sign your paper forms before you file them.
+
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">What it means to sign your forms</h6>
+    <p>By signing the <i>Request to Expunge Juvenile Records</i>, you are certifying that:</p>
+    <p><ul>
+      <li>Everything on the forms is true and correct, or you have been informed or believe it to be true and correct, and</li>
+      <li>You understand that making a false statement on the forms is perjury and has penalties provided by law.</li></ul></p>
+  <p>See the <a href="https://www.ilga.gov/legislation/ilcs/documents/073500050k1-109.htm"><b>Illinois Code of Civil Procedure, 735 ILCS 5/1-109</b></a> for more information.</p>
+  </div>
+fields:
+  - "Add e-signature?": e_signature
+    datatype: yesnoradio
+terms:
+  - "e-signature": |
+      An e-signature is an electronic signature. It is a digital version of a signature that has the same effect as a hand-written signature.
+---
+id: next steps
+continue button field: next_steps
+question: |
+  Next steps
+subquestion: |
+  After you download your forms, you must file them with the court. This program **does not file** your forms for you. To learn about the filing process, see ILAO's [**Court process for expungement or sealing FAQ**](https://www.illinoislegalaid.org/node/185996).
+
+  There may be fees to get records from police departments, certified dispositions, or court filing fees. There also may be an Illinois State Police processing fee to process your expungement or sealing court order. The Circuit Clerk collects this fee with the filing fee.
+
+  **Note:** If you cannot afford the Circuit Clerk filing fee or the Illinois State Police processing fee, you can ask the court to waive those fees. You can use ILAO's [**Fee waiver Easy Form**](https://www.illinoislegalaid.org/node/30831) to make forms to ask the court to file for free or at a reduced cost.
+
+  After you file the *${ form_name }* and get a court date, you may need to go to court for a court date in front of a judge. Some counties schedule a court date right away, but others will only schedule a court date if there is an objection to your *Request*.
+  
+  Finally, the court will decide on your *Request*. To learn about what happens after the court makes its decision, read ILAO's [**After your expungement or sealing case is decided FAQ**](https://www.illinoislegalaid.org/node/186001).
+  
+  You can read the instructions you can download on an upcoming screen to learn more about what's next and how to get additional help.
+---
+id: forms assembling
+continue button field: forms_assembling
+question: |
+  Almost done
+subquestion: |
+  After you click **Next**, it may take a few moments to finish making your forms.
+  
+  ###### You do not need to refresh your screen. Hang in there!
+  
+  [NEWLINE]
+---
+id: get docs screen
+event: get_docs_screen
+question: |
+  Download
+subquestion: |
+  Your forms are ready. View and download your forms below. Click **:edit: Make changes** to fix any mistakes.
+  
+  Read the instructions for next steps on how to use the forms and follow up on your *Request*. 
+  
+  This program **does not file** your forms with the court. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
+
+  ${ action_button_html(url_action('review_answers'), label=':edit: Make changes', color='success', size="md") }
+  
+  ${ al_user_bundle.download_list_html() }
+
+  [NEWLINE]
+
+  ${ al_user_bundle.send_button_html(show_editable_checkbox=False) }
+
+  **Note:** This program **does not file** your forms with the court. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
+  
+  Thank you for using ILAO Easy Forms!
+under: |
+  % if not user_logged_in():
+  [${fa_icon("sign-in-alt", color="#0079d0", size="sm")} **Sign-in**](${url_of('login', next=interview_url())}) or [**create**](${url_of('register', next=interview_url())}) an ILAO Easy Form account to save your progress (optional).
+  % endif 
+
+  &nbsp;
+  ${ action_button_html(interview_url(i="docassemble.ILAO:feedback.yml", easy_form_interview=ilao_easy_form_url, easy_form_title=ilao_easy_form_title, easy_form_page=current_context().question_id, easy_form_variable=current_context().variable, local=False,reset=1), label=':comment: Was this program helpful?', color="#181c36", size="md", new_window=True) }
+---
+generic object: ALDocumentBundle
+template: x.get_email_copy
+content: |
+  Send a copy of your forms to your email
+---
+generic object: ALDocumentBundle
+template: x.send_email_template
+subject: |
+  Juvenile expungement forms
+content: |
+  Your forms are attached.
+  
+  Thanks for using ILAO Easy Forms!
+  
+  [Illinois Legal Aid Online](https://www.illinoislegalaid.org)
+---
