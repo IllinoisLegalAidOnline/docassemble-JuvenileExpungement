@@ -13,7 +13,7 @@ include:
 objects:
   - users: ALPeopleList.using(there_are_any=True)
   - arrests: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True)
-  - all_numbers: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True)
+  - all_numbers: DAList.using(object_type=Thing, there_is_another=False)
   - arrests[i].agency: ALIndividual
   - agencies_list: ALPeopleList.using(there_are_any=True)
   - filing_location: ALAddress
@@ -59,9 +59,9 @@ code: |
     ir_number_check
   arrests_intro
   arrests.gather()
-  filter_arrests
-  if qualified_arrests.number_gathered() == 0:
-    no_cases_kickout
+  
+  #if len(qualified_arrests) == 0:
+  #  no_cases_kickout
 
   nav.set_section('section_filing')
   users[0].name.first
@@ -76,6 +76,7 @@ code: |
 
   nav.set_section('section_download')
   forms_assembling
+  filter_arrests
   refresh_agencies_list
   list_numbers
   refresh_bundles
@@ -101,6 +102,8 @@ code: |
     
   if is_eligible(arrests[i]):
     arrests[i].charge
+    if i > 0:
+      refresh_agencies_list
     arrests[i].agency.name.first
     arrests[i].outcome
     arrests[i].case_number
@@ -128,7 +131,7 @@ code: |
 ---
 reconsider: True
 code: |
-  qualified_arrests = [arrest for arrest in arrests if is_eligible(arrest) == True]
+  qualified_arrests = [arrest for arrest in arrests if is_eligible(arrest)]
   filter_arrests = True
 ---
 code: |
@@ -216,7 +219,7 @@ question: |
 subquestion: | 
   Some juvenile arrests and court records can be expunged. To **expunge** means to erase the police and court records of the case. 
 
-  This program will create a *Request to Expunge Juvenile Records*. This form will include any of your eligible juvenile arrests and court records. You can only include court records from one county in the request. If you need to expunge records in more than one county, you will need to run this program again to make more forms.
+  This program will create a *Request to Expunge Juvenile Records*. This form will list your eligible juvenile arrests and court records. You can only include court records from one county in the request. If you need to expunge records in more than one county, you will need to run this program again to make more forms.
 
   If you have arrests involving cannabis, you may want to read ILAO's article, [**Cannabis legalization and expungement basics**](https://www.illinoislegalaid.org/legal-information/cannabis-legalization-and-expungement-basics). 
 
@@ -255,17 +258,16 @@ continue button field: more_expungement_info
 question: |
   Obstacles to clearing your criminal records
 subquestion: |
-  You might not be eligible for getting your criminal records expunged or sealed if:
+  You might not be eligible for getting your criminal records expunged if:
   
   * You have any pending criminal charges,
-  * You have not completed your sentence, including parole, probation, or court supervision,
-  * Your records for some offenses are not eligible for expungement or sealing, or
-  * A required waiting period for sealing your offense has not passed yet.
+  * You have not completed your sentence, including parole, probation, or court supervision, or
+  * Your records for some offenses are not eligible for expungement.
 
-  Also, police departments and prosecutors for your criminal cases get a chance to object to your *Request* to expunge juvenile records.
+  Also, police departments and prosecutors for your criminal cases get a chance to object to your *Request to Expunge Juvenile Records*.
 
   * The police departments and prosecutors have 45 days from the day they receive your *Request* to file a written objection with the court. If they **object**, it means they do not want your record to be expunged or sealed. If the agencies do not object during the 45 days, they cannot object at a later time.
-  * An **objection** does not mean the court is denying your *Request*. The court will consider the objection when deciding if your criminal record will be expunged or sealed.
+  * An **objection** does not mean the court is denying your *Request*. The court will consider the objection when deciding if your criminal record will be expunged.
 ---
 id: records info
 continue button field: records_info
@@ -469,10 +471,12 @@ fields:
     validation messages:
       max: |
         Only arrests from when you were under 18 years of age are juvenile records.
+validation code: |
+  arrests[i].name = arrests[i].date
 ---
 id: after arrest
 question: |
-  What happened after the ${arrests[i].arrest_date} arrest?
+  What happened after the ${arrests[i].date} arrest?
 field: arrests[i].after_arrest
 choices:
   - I was released without being charged in court.: no_charge
@@ -483,7 +487,7 @@ choices:
 ---
 id: at court
 question: |
-  What happened when you went to court for the ${arrests[i].arrest_date} arrest?
+  What happened when you went to court for the ${arrests[i].date} arrest?
 field: arrests[i].at_court
 choices:
   - The case was thrown out (dismissed).: dismissed
@@ -603,20 +607,35 @@ subquestion: |
 fields:
   - Offense: arrests[i].charge
     input type: area
-    rows: 1
+    rows: 2
     maxlength: 50
 ---
 reconsider: True
 code: |
   agencies_list = []
-  for index, arrest in enumerate(arrests):
-    if index == 0:
-      agencies_list.append(arrest.agency)
-    elif arrest.agency_option == "other":
-      agencies_list.append(arrest.agency)
+  arrest_index = 0
+  while (arrest_index + 1) < arrests.number_gathered():   
+    #arrests[arrest_index].debug
+    if arrest_index == 0:
+      agencies_list.append(arrests[arrest_index].agency)
+    elif getattr(arrests[arrest_index], 'agency_option', "undefined") == "other":
+      agencies_list.append(arrests[arrest_index].agency)    
+    arrest_index += 1
   refresh_agencies_list = True
 ---
+id: agency list block debug
+continue button field: arrests[i].debug
+question: |
+  Debug
+subquestion: |
+  Arrest index is ${arrest_index}
+
+  arrests number gathered is ${arrests.number_gathered()}
+---
 id: arresting agency generic
+if: i > 0
+sets:
+  - arrests[i].agency.name.first
 question: |
   What is the name and address of the law enforcement agency that arrested you?
 subquestion: |
@@ -628,33 +647,55 @@ fields:
     input type: radio
     choices:
       code: |
-          [
-            {agency.name.first: agency}
-            for agency in agencies_list
-          ] + [{"Another agency": "other"}]
+        [
+          {
+            "label": agency.name.first,
+            "value": str(index)
+          }
+          for index, agency in enumerate(agencies_list)
+        ] + [
+          {
+            "label": "Another agency",
+            "value": "other"
+          }
+        ]
   - Agency name: arrests[i].agency.name.first
     maxlength: 35
-    show if: arrests[i].agency_option == "other"
+    js show if: |
+      val("arrests[i].agency_option") == "other"
   - Street address: arrests[i].agency.address.address
     address autocomplete: True
-    show if: arrests[i].agency_option == "other"
+    js show if: |
+      val("arrests[i].agency_option") == "other"
   - Address line 2: arrests[i].agency.address.unit
     required: False
-    show if: arrests[i].agency_option == "other"
+    js show if: |
+      val("arrests[i].agency_option") == "other"
   - City: arrests[i].agency.address.city
-    show if: arrests[i].agency_option == "other"
+    js show if: |
+      val("arrests[i].agency_option") == "other"
   - State: arrests[i].agency.address.state
     code: |
       states_list()
     default: IL      
-    show if: arrests[i].agency_option == "other"
+    js show if: |
+      val("arrests[i].agency_option") == "other"
   - ZIP code: arrests[i].agency.address.zip  
-    show if: arrests[i].agency_option == "other"
+    js show if: |
+      val("arrests[i].agency_option") == "other"
 validation code: |
   if arrests[i].agency_option != "other":
-    arrests[i].agency = arrests[i].agency_option
+    selected_agency = agencies_list[int(arrests[i].agency_option)]
+    arrests[i].agency.name.first = selected_agency.name.first
+    arrests[i].agency.address.address = selected_agency.address.address
+    arrests[i].agency.address.unit = selected_agency.address.unit
+    arrests[i].agency.address.city = selected_agency.address.city
+    arrests[i].agency.address.state = selected_agency.address.state
+    arrests[i].agency.address.zip = selected_agency.address.zip
 ---
 id: arresting agency zero
+sets:
+  - arrests[0].agency.name.first
 question: |
   What is the name and address of the law enforcement agency that arrested you?
 subquestion: |
@@ -728,6 +769,23 @@ fields:
       - "**RV** - Guilty / Conviction Reversed or Vacated": RV
       - "**P** - Guilty / Conviction with a Pardon from the Governor": P
       - "**CE** - Guilty / Conviction with a Certificate of Eligibility for Expungement from Prisoner Review Board": CE
+---
+id: arrests there is another
+question: |
+  Do you want to expunge another juvenile record?
+subquestion: |
+  % if arrests.number_gathered() > 1:
+  So far you have told us about the arrests that took place on:
+
+  % for arrest in arrests:
+  * ${arrest.date}
+  % endfor
+  % else:
+  So far you have told us about the arrest that took place on ${arrests[0].date}
+  % endif
+fields:
+  - no label: arrests.there_is_another
+    datatype: yesnoradio
 ---
 id: no cases kickout
 event: no_cases_kickout
@@ -959,8 +1017,11 @@ objects:
 code: |
   instructions.enabled = True
   request_bundle.enabled = True
+  case_list_bundle.enabled = True
+  records_bundle.enabled = True
   request.enabled = True
   order_bundle.enabled = True
+  agencies_bundle.enabled = True
   order_denying_request.enabled = True
   change_of_address.enabled = True
   notice.enabled = True
@@ -1165,22 +1226,28 @@ code: |
   for index, arrest in enumerate(arrests):
     if index % 10 == 0:
       arrest.index_for_order = index
+      arrest.order.enabled = True
       elements_for_order_bundle.append(arrest.order)
     if index > 9 and index % 5 == 0:
       arrest.index_for_records = index
+      arrest.records.enabled = True
       elements_for_records_bundle.append(arrest.records)
   order_bundle.elements = elements_for_order_bundle
   records_bundle.elements = elements_for_records_bundle
 
-  for index, number in enumerate(all_numbers):
-    if index % 64 == 0:
-      number.index_for_case_list = index
-      elements_for_case_list_bundle.append(number.case_list)
+  number_index = 0
+  while number_index < len(all_numbers):
+    if number_index % 64 == 0:
+      all_numbers[number_index].index_for_case_list = number_index
+      all_numbers[number_index].case_list.enabled = True
+      elements_for_case_list_bundle.append(all_numbers[number_index].case_list)
+    number_index += 1
   case_list_bundle.elements = elements_for_case_list_bundle
 
   for index, agency in enumerate(agencies_list):
     if index > 3 and index % 4 == 0:
       agency.index_for_agencies = index
+      agency.agencies.enabled = True
       elements_for_agencies_bundle.append(agency.agencies)
   agencies_bundle.elements = elements_for_agencies_bundle
   
@@ -1189,10 +1256,16 @@ code: |
 reconsider: True
 code: |
   all_numbers.clear()
+  numbers_index = 0
   for arrest in arrests:
-    all_numbers.append(arrest.case_number)
+    if arrest.case_number != "":
+      all_numbers.appendObject(Individual)
+      all_numbers[numbers_index].name.first = arrest.case_number
+      numbers_index += 1
     if arrest.enforcement_number != "":
-      all_numbers.append(arrest.enforcement_number)
+      all_numbers.appendObject(Individual)
+      all_numbers[numbers_index].name.first = arrest.enforcement_number
+      numbers_index += 1
   list_numbers = True
 ---
 attachment:
@@ -1239,70 +1312,70 @@ attachment:
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
     - "case_number": ${""}
-    - "record_0": ${all_numbers[i]}
-    - "record_1": ${all_numbers[i+1]}
-    - "record_2": ${all_numbers[i+2]}
-    - "record_3": ${all_numbers[i+3]}
-    - "record_4": ${all_numbers[i+4]}
-    - "record_5": ${all_numbers[i+5]}
-    - "record_6": ${all_numbers[i+6]}
-    - "record_7": ${all_numbers[i+7]}
-    - "record_8": ${all_numbers[i+8]}
-    - "record_9": ${all_numbers[i+9]}
-    - "record_10": ${all_numbers[i+10]}
-    - "record_11": ${all_numbers[i+11]}
-    - "record_12": ${all_numbers[i+12]}
-    - "record_13": ${all_numbers[i+13]}
-    - "record_14": ${all_numbers[i+14]}
-    - "record_15": ${all_numbers[i+15]}
-    - "record_16": ${all_numbers[i+16]}
-    - "record_17": ${all_numbers[i+17]}
-    - "record_18": ${all_numbers[i+18]}
-    - "record_19": ${all_numbers[i+19]}
-    - "record_20": ${all_numbers[i+20]}
-    - "record_21": ${all_numbers[i+21]}
-    - "record_22": ${all_numbers[i+22]}
-    - "record_23": ${all_numbers[i+23]}
-    - "record_24": ${all_numbers[i+24]}
-    - "record_25": ${all_numbers[i+25]}
-    - "record_26": ${all_numbers[i+26]}
-    - "record_27": ${all_numbers[i+27]}
-    - "record_28": ${all_numbers[i+28]}
-    - "record_29": ${all_numbers[i+29]}
-    - "record_30": ${all_numbers[i+30]}
-    - "record_31": ${all_numbers[i+31]}
-    - "record_32": ${all_numbers[i+32]}
-    - "record_33": ${all_numbers[i+33]}
-    - "record_34": ${all_numbers[i+34]}
-    - "record_35": ${all_numbers[i+35]}
-    - "record_36": ${all_numbers[i+36]}
-    - "record_37": ${all_numbers[i+37]}
-    - "record_38": ${all_numbers[i+38]}
-    - "record_39": ${all_numbers[i+39]}
-    - "record_40": ${all_numbers[i+40]}
-    - "record_41": ${all_numbers[i+41]}
-    - "record_42": ${all_numbers[i+42]}
-    - "record_43": ${all_numbers[i+43]}
-    - "record_44": ${all_numbers[i+44]}
-    - "record_45": ${all_numbers[i+45]}
-    - "record_46": ${all_numbers[i+46]}
-    - "record_47": ${all_numbers[i+47]}
-    - "record_48": ${all_numbers[i+48]}
-    - "record_49": ${all_numbers[i+49]}
-    - "record_50": ${all_numbers[i+50]}
-    - "record_51": ${all_numbers[i+51]}
-    - "record_52": ${all_numbers[i+52]}
-    - "record_53": ${all_numbers[i+53]}
-    - "record_54": ${all_numbers[i+54]}
-    - "record_55": ${all_numbers[i+55]}
-    - "record_56": ${all_numbers[i+56]}
-    - "record_57": ${all_numbers[i+57]}
-    - "record_58": ${all_numbers[i+58]}
-    - "record_59": ${all_numbers[i+59]}
-    - "record_60": ${all_numbers[i+60]}
-    - "record_61": ${all_numbers[i+61]}
-    - "record_62": ${all_numbers[i+62]}
-    - "record_63": ${all_numbers[i+63]}
+    - "record_0": ${all_numbers[i].name.first}
+    - "record_1": ${all_numbers[i+1].name.first}
+    - "record_2": ${all_numbers[i+2].name.first}
+    - "record_3": ${all_numbers[i+3].name.first}
+    - "record_4": ${all_numbers[i+4].name.first}
+    - "record_5": ${all_numbers[i+5].name.first}
+    - "record_6": ${all_numbers[i+6].name.first}
+    - "record_7": ${all_numbers[i+7].name.first}
+    - "record_8": ${all_numbers[i+8].name.first}
+    - "record_9": ${all_numbers[i+9].name.first}
+    - "record_10": ${all_numbers[i+10].name.first}
+    - "record_11": ${all_numbers[i+11].name.first}
+    - "record_12": ${all_numbers[i+12].name.first}
+    - "record_13": ${all_numbers[i+13].name.first}
+    - "record_14": ${all_numbers[i+14].name.first}
+    - "record_15": ${all_numbers[i+15].name.first}
+    - "record_16": ${all_numbers[i+16].name.first}
+    - "record_17": ${all_numbers[i+17].name.first}
+    - "record_18": ${all_numbers[i+18].name.first}
+    - "record_19": ${all_numbers[i+19].name.first}
+    - "record_20": ${all_numbers[i+20].name.first}
+    - "record_21": ${all_numbers[i+21].name.first}
+    - "record_22": ${all_numbers[i+22].name.first}
+    - "record_23": ${all_numbers[i+23].name.first}
+    - "record_24": ${all_numbers[i+24].name.first}
+    - "record_25": ${all_numbers[i+25].name.first}
+    - "record_26": ${all_numbers[i+26].name.first}
+    - "record_27": ${all_numbers[i+27].name.first}
+    - "record_28": ${all_numbers[i+28].name.first}
+    - "record_29": ${all_numbers[i+29].name.first}
+    - "record_30": ${all_numbers[i+30].name.first}
+    - "record_31": ${all_numbers[i+31].name.first}
+    - "record_32": ${all_numbers[i+32].name.first}
+    - "record_33": ${all_numbers[i+33].name.first}
+    - "record_34": ${all_numbers[i+34].name.first}
+    - "record_35": ${all_numbers[i+35].name.first}
+    - "record_36": ${all_numbers[i+36].name.first}
+    - "record_37": ${all_numbers[i+37].name.first}
+    - "record_38": ${all_numbers[i+38].name.first}
+    - "record_39": ${all_numbers[i+39].name.first}
+    - "record_40": ${all_numbers[i+40].name.first}
+    - "record_41": ${all_numbers[i+41].name.first}
+    - "record_42": ${all_numbers[i+42].name.first}
+    - "record_43": ${all_numbers[i+43].name.first}
+    - "record_44": ${all_numbers[i+44].name.first}
+    - "record_45": ${all_numbers[i+45].name.first}
+    - "record_46": ${all_numbers[i+46].name.first}
+    - "record_47": ${all_numbers[i+47].name.first}
+    - "record_48": ${all_numbers[i+48].name.first}
+    - "record_49": ${all_numbers[i+49].name.first}
+    - "record_50": ${all_numbers[i+50].name.first}
+    - "record_51": ${all_numbers[i+51].name.first}
+    - "record_52": ${all_numbers[i+52].name.first}
+    - "record_53": ${all_numbers[i+53].name.first}
+    - "record_54": ${all_numbers[i+54].name.first}
+    - "record_55": ${all_numbers[i+55].name.first}
+    - "record_56": ${all_numbers[i+56].name.first}
+    - "record_57": ${all_numbers[i+57].name.first}
+    - "record_58": ${all_numbers[i+58].name.first}
+    - "record_59": ${all_numbers[i+59].name.first}
+    - "record_60": ${all_numbers[i+60].name.first}
+    - "record_61": ${all_numbers[i+61].name.first}
+    - "record_62": ${all_numbers[i+62].name.first}
+    - "record_63": ${all_numbers[i+63].name.first}
     - "more_numbers": ${True if all_numbers.number_gathered() > (i+64) else False}
 ---
 attachment:
