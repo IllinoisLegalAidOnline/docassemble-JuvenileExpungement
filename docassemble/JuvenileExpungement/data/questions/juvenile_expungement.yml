@@ -53,7 +53,6 @@ code: |
     records_info
     more_records_info
 
-
   nav.set_section('section_records')
   if filing_location.county == "Cook":
     ir_number_check
@@ -76,6 +75,7 @@ code: |
 
   nav.set_section('section_download')
   forms_assembling
+  pop_ineligible_arrests
   filter_arrests
   refresh_agencies_list
   list_numbers
@@ -131,8 +131,26 @@ code: |
 ---
 reconsider: True
 code: |
+  subsection_1_flag = False
+  subsection_2_flag = False
   qualified_arrests = [arrest for arrest in arrests if is_eligible(arrest)]
+  for arrest in qualified_arrests:
+    if which_subsection(arrest) == "2":
+      subsection_2_flag = True
+    else:
+      subsection_1_flag = True
   filter_arrests = True
+---
+#variant of code block pulled from NameChangeChild easy form
+reconsider: True
+code: |
+  iteration_tracker = 0
+  while iteration_tracker < arrests.number_gathered():
+    if is_eligible(arrests[iteration_tracker]):
+      iteration_tracker += 1
+    else:
+      arrests.pop(iteration_tracker)
+  pop_ineligible_arrests = True
 ---
 code: |
   stuff_to_snapshot = {
@@ -537,7 +555,8 @@ subquestion: |
   **Note:** If a judge adjudicated you delinquent (found you guilty) of a Class A misdemeanor or a felony, you must wait at least 2 years after your court case ended, including the end of any sentence.
 fields:
   - Date: arrests[i].case_end_date
-    max: today()
+    datatype: date
+    max: ${today()}
 ---
 id: arrest cannot expunge offense type
 continue button field: arrests[i].cannot_expunge_offense_type
@@ -1123,18 +1142,8 @@ attachment:
     - "arrest_9_outcome": ${arrests[8].outcome}
     - "arrest_10_outcome": ${arrests[9].outcome}
     - "additional_arrests": ${True if arrests.number_gathered() > 10 else False}
-    - "subsection_1": |
-        % for arrest in arrests:
-        % if which_subsection(arrest) == "1":
-        True
-        % endif
-        % endfor 
-    - "subsection_2": |
-        % for arrest in arrests:
-        % if which_subsection(arrest) == "2":
-        True
-        % endif
-        % endfor 
+    - "subsection_1": ${subsection_1_flag}
+    - "subsection_2": ${subsection_2_flag}
     - "e_signature": ${users[0].name_full() if e_signature else ""}
     - "user_phone": ${phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else ""}
     - "user_email": ${users[0].email if users[0].has_email_address else ""}
@@ -1203,16 +1212,16 @@ attachment:
     - "lawyer_check": ${False}
     - "agency_1_name": ${agencies_list[0].name.first}
     - "agency_1_street": ${agencies_list[0].address.line_one(bare=True)}
-    - "agency_1_csz": ${agencies_list[0].line_two()}
+    - "agency_1_csz": ${agencies_list[0].address.line_two()}
     - "agency_2_name": ${agencies_list[1].name.first}
     - "agency_2_street": ${agencies_list[1].address.line_one(bare=True)}
-    - "agency_2_csz": ${agencies_list[1].line_two()}
+    - "agency_2_csz": ${agencies_list[1].address.line_two()}
     - "agency_3_name": ${agencies_list[2].name.first}
     - "agency_3_street": ${agencies_list[2].address.line_one(bare=True)}
-    - "agency_3_csz": ${agencies_list[2].line_two()}
+    - "agency_3_csz": ${agencies_list[2].address.line_two()}
     - "agency_4_name": ${agencies_list[3].name.first}
     - "agency_4_street": ${agencies_list[3].address.line_one(bare=True)}
-    - "agency_4_csz": ${agencies_list[3].line_two()}
+    - "agency_4_csz": ${agencies_list[3].address.line_two()}
     - "states_attorney_address": ${states_attorney_address.on_one_line(bare=True)}
     - "additional_agencies": ${True if agencies_list.number_gathered() > 4 else False}
 ---
@@ -1443,10 +1452,308 @@ attachment:
     - "agency_1_csz": ${x.line_two()}
     - "agency_2_name": ${agencies_list[x.index_for_agencies+1].name.first}
     - "agency_2_street": ${agencies_list[x.index_for_agencies+1].address.line_one(bare=True)}
-    - "agency_2_csz": ${agencies_list[x.index_for_agencies+1].line_two()}
+    - "agency_2_csz": ${agencies_list[x.index_for_agencies+1].address.line_two()}
     - "agency_3_name": ${agencies_list[x.index_for_agencies+2].name.first}
     - "agency_3_street": ${agencies_list[x.index_for_agencies+2].address.line_one(bare=True)}
-    - "agency_3_csz": ${agencies_list[x.index_for_agencies+2].line_two()}
+    - "agency_3_csz": ${agencies_list[x.index_for_agencies+2].address.line_two()}
     - "agency_4_name": ${agencies_list[x.index_for_agencies+3].name.first}
     - "agency_4_street": ${agencies_list[x.index_for_agencies+3].address.line_one(bare=True)}
-    - "agency_4_csz": ${agencies_list[x.index_for_agencies+3].line_two()}
+    - "agency_4_csz": ${agencies_list[x.index_for_agencies+3].address.line_two()}
+---
+id: review screen
+event: review_answers
+question: |
+  Review screen
+subquestion: |
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Information about criminal records relief</h6>
+    <p><ul>
+      <li><a href="${url_action('expungement_info')}"><b>Clearing your criminal record in Illinois</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Obstacles to clearing your criminal record</b></a></li>
+      <li><a href="${url_action('records_info')}"><b>Two kinds of criminal records</b></a></li>
+      <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your criminal records</b></a></li>
+    </p>
+  </div>
+  
+  Edit your answers below.
+review:
+  - note: |
+      <h4>Your records</h4>
+---
+id: records review screen
+section: Your records
+event: section_records
+question: |
+  Your records
+subquestion: |
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Information about criminal records relief</h6>
+    <p><ul>
+      <li><a href="${url_action('expungement_info')}"><b>Clearing your criminal record in Illinois</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Obstacles to clearing your criminal record</b></a></li>
+      <li><a href="${url_action('records_info')}"><b>Two kinds of criminal records</b></a></li>
+      <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your criminal records</b></a></li>
+    </p>
+  </div>
+  
+  Edit your answers below.
+review:
+  - label: Edit
+    fields:
+      - filing_location.trial_court_index
+      - recompute:
+        - filing_location.county
+    button: |
+      **Which county are you filing your request in?**
+      ${end_in_county(filing_location.county)}
+  - Edit: ir_number_check
+    button: |
+      % if ir_number_check:
+      **IR number:**
+      ${ir_number}
+      % else:
+      **Do you have an IR number?**
+      No
+      % endif
+    show if: filing_location.trial_court_index == -1
+  - Edit: arrests.revisit
+    button: |
+      **Records: (Edit to review, change details, or add more)**
+
+      % for my_var in arrests:
+        1. Arrest date: ${ my_var.date}
+      % endfor
+---
+id: arrests revisit review screen
+continue button field: arrests.revisit
+question: |
+  Edit records
+subquestion: |
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Information about criminal records relief</h6>
+    <p><ul>
+      <li><a href="${url_action('expungement_info')}"><b>Clearing your criminal record in Illinois</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Obstacles to clearing your criminal record</b></a></li>
+      <li><a href="${url_action('records_info')}"><b>Two kinds of criminal records</b></a></li>
+      <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your criminal records</b></a></li>
+    </p>
+  </div>
+  
+  Edit your answers below.
+
+  **Note:** Changing these details may affect eligibility for expungement. Be sure to review your forms before filing.
+
+  ${ arrests.table }
+
+  ${ arrests.add_action() }
+---
+table: arrests.table
+rows: arrests
+columns:
+  - Arrest date: |
+      row_item.date if defined("row_item.date") else ""
+  - Eligible for expungement: |
+      word(yesno(is_eligible(row_item))) if defined("row_item.complete") else ""
+edit:
+  - review_records_details
+delete buttons: True
+confirm: True
+---
+id: arrests details review screen
+continue button field: x.review_records_details
+generic object: DAObject
+question: |
+  Edit record details
+subquestion: |
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Information about criminal records relief</h6>
+    <p><ul>
+      <li><a href="${url_action('expungement_info')}"><b>Clearing your criminal record in Illinois</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Obstacles to clearing your criminal record</b></a></li>
+      <li><a href="${url_action('records_info')}"><b>Two kinds of criminal records</b></a></li>
+      <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your criminal records</b></a></li>
+    </p>
+  </div>
+
+  Edit your answers below.
+  
+  **Note:** Changing these details may affect eligibility for expungement. Be sure to review your forms before filing.
+review: 
+  - Edit: x.date
+    button: |
+      **Arrest date:**
+      ${x.date}
+  - Edit: x.after_arrest
+    button: |
+      **What happened as a result of the arrest?**
+
+      % if x.after_arrest == "no_charge":
+      * I was **released** without being charged in court.
+      % elif x.after_arrest == "diversion":
+      * I was given a **diversion** program at the police station or at the probation department.
+      % elif x.after_arrest == "successful_supervision":
+      * I was given **supervision**, which the court said was **completed successfully**.: 
+      % elif x.after_arrest == "failed_supervision":
+      *  I was given **supervision**, which the court said was **not** completed successfully.
+      % else:
+      * I went to court (saw a judge).
+      % endif
+  - Edit: x.at_court
+    button: |
+      **What happened when you went to court?**
+
+      % if x.at_court == "dismissed":
+      * The case was thrown out (dismissed).
+      % elif x.at_court == "delinquent":
+      * I was found not delinquent (not guilty).
+      % else:
+      * I was found guilty.
+      % endif
+    show if: x.after_arrest == "court"
+  - Edit: x.found_guilty
+    button: |
+      % if x.found_guilty != "other":
+      **What were you found guilty of?**
+      
+      % if x.found_guilty == "traffic":
+      * A traffic offense
+      % elif x.found_guilty == "murder":
+      * First-dgree murder or a felony sex offense
+      % elif x.found_guilty == "felony_or_a":
+      * A felony or class A misdemeanor
+      % elif x.found_guilty == "b_or_c":
+      * A Class B or Class C misdemeanor
+      % else:
+      * A petty offense
+      % endif
+      % else:
+      **Were you found guilty of an offense that could be expunged?**
+      No
+      % endif
+    show if: x.after_arrest == "court" and x.at_court == "other"
+  - Edit: x.must_register
+    button: |
+      **Did the court require you to register on the Juvenile Sex Offender Registry?**
+      ${word(yesno(x.must_register))}
+    show if: (x.after_arrest == "court" and x.at_court == "other" and x.found_guilty == "felony_or_a") or x.after_arrest == "successful_supervision" or x.after_arrest == "failed_supervision"
+  - Edit: x.case_end_date
+    button: |
+      **When did the sentence end?**
+      ${x.case_end_date}
+    show if: x.after_arrest == "court" and x.at_court == "other" and x.found_guilty == "felony_or_a" and not x.must_register
+  - Edit: x.charge
+    button: |
+      *What were you arrested for?**
+      ${x.charge}
+    show if: is_eligible(x)
+  - Edit: x.agency.name.first
+    button: |
+      **Arresting agency**
+      ${x.agency.name.first}
+      ${x.agency.address.line_one(bare=True)}
+      ${ x.agency.address.line_two(bare=True)}
+    show if: is_eligible(x)
+  - Edit: x.outcome
+    button: |
+      **Outcome of the arrest:**
+
+      % if x.outcome == "RWC":
+      * "**RWC** - Released Without Charge"
+      % elif x.outcome == "DA":
+      * "**DA** - Dismissal or Acquittal, Finding of No Probable Cause (FNPC), Found Not Guilty (FNG), Nolle Prosequi, Non-Suit, Stricken Off with Leave to Reinstate (SOL)"
+      % elif x.outcome == "S":
+      * "**S** - Court Supervision, Completed successfully"
+      % elif x.outcome == "QP":
+      * "**QP** - First Offender Drug Probation or Qualified Probation, Completed successfully"
+      % elif x.outcome == "FI":
+      * "**FI** - Found Factually Innocent"
+      % elif x.outcome == "RV":
+      * "**RV** - Guilty / Conviction Reversed or Vacated"
+      % elif x.outcome == "P":
+      * "**P** - Guilty / Conviction with a Pardon from the Governor"
+      % else:
+      * "**CE** - Guilty / Conviction with a Certificate of Eligibility for Expungement from Prisoner Review Board"
+      % endif
+    show if: is_eligible(x)
+  - Edit: x.case_number
+    button: |
+      **Case number:**
+      ${x.case_number}
+    show if: is_eligible(x)
+  - Edit: x.enforcement_number
+    button: |
+      **Law enforcement number:**
+      % if x.enforcement_number == "":
+      None entered
+      % else:
+      ${x.enforcement_number}
+      % endif
+    show if: is_eligible(x)
+continue button label: Next
+---
+id: filing details review screen
+section: Filing details
+event: section_filing
+question: |
+  Filing details
+subquestion: |
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Information about criminal records relief</h6>
+    <p><ul>
+      <li><a href="${url_action('expungement_info')}"><b>Clearing your criminal record in Illinois</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Obstacles to clearing your criminal record</b></a></li>
+      <li><a href="${url_action('records_info')}"><b>Two kinds of criminal records</b></a></li>
+      <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your criminal records</b></a></li>
+    </p>
+  </div>
+  
+  Edit your answers below.
+review:
+  - Edit: users[0].name.first
+    button: |
+      **Your name:**
+      ${ users[0].name_full() }
+  - Edit: users[0].has_other_names
+    button: |
+      **Do you have any other names that were used in your cases or arrests?**
+      ${word(yesno(users[0].has_other_names))}
+      % if users[0].has_other_names:
+      [NEWLINE][NEWLINE]**Other names:** ${other_user_names }
+      % endif      
+  - Edit: users[0].birthdate
+    button: |
+      **When were you born?**
+      ${ users[0].birthdate }
+  - Edit: users[0].address.address
+    button: |
+      **Your address:**[NEWLINE]
+      ${ users[0].address.on_one_line(bare=True) }
+  - Edit: users[0].phone_number
+    button: |
+      **Your phone number:**
+      % if users[0].phone_number == "":
+      None entered
+      % else:
+      ${ phone_number_formatted(users[0].phone_number) }
+      % endif
+  - Edit: users[0].has_email_address
+    button: |
+      **Do you have an email address?**
+      ${ word(yesno(users[0].has_email_address)) }
+  - Edit: users[0].email
+    button: |
+      **Your email:**
+      ${ users[0].email }
+    show if: users[0].has_email_address
+  - Edit: states_attorney_address.address
+    button: |
+      **${end_in_county(filing_location.county)}'s state's attorney's address:**
+      % if states_attorney_address.line_one(bare=True) == "":
+      I don't know
+      % else:
+      ${states_attorney_address.on_one_line(bare=True)}
+      % endif
+  - Edit: e_signature
+    button: |
+      **Do you want to add your e-signature to your forms?**
+      ${ word(yesno(e_signature)) }
