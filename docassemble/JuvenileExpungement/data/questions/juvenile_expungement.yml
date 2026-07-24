@@ -21,6 +21,7 @@ objects:
   - court_list: ALCourtLoader.using(file_name='docassemble.ILAO:data/sources/il_courts.xlsx')
   - cook_preview: DAStaticFile.using(filename="cook_county_and_chicago_examples.pdf")
   - il_preview: DAStaticFile.using(filename="illinois_not_cook_examples.pdf")
+  - qualified_arrests: DAList.using(object_type=Thing, complete_attribute=['complete'], there_are_any=True, there_is_another=False)
 ---
 code: |
   al_form_type = 'starts_case'
@@ -75,7 +76,7 @@ code: |
 
   nav.set_section('section_download')
   forms_assembling
-  pop_ineligible_arrests
+
   filter_arrests
   refresh_agencies_list
   list_numbers
@@ -140,17 +141,6 @@ code: |
     else:
       subsection_1_flag = True
   filter_arrests = True
----
-#variant of code block pulled from NameChangeChild easy form
-reconsider: True
-code: |
-  iteration_tracker = 0
-  while iteration_tracker < arrests.number_gathered():
-    if is_eligible(arrests[iteration_tracker]):
-      iteration_tracker += 1
-    else:
-      arrests.pop(iteration_tracker)
-  pop_ineligible_arrests = True
 ---
 code: |
   stuff_to_snapshot = {
@@ -633,7 +623,7 @@ reconsider: True
 code: |
   agencies_list = []
   arrest_index = 0
-  while (arrest_index + 1) < arrests.number_gathered():   
+  while arrest_index < arrests.number_gathered():   
     #arrests[arrest_index].debug
     if arrest_index == 0:
       agencies_list.append(arrests[arrest_index].agency)
@@ -1018,13 +1008,19 @@ objects:
   - change_of_address: ALDocument.using(title="Change of Address (draft)", filename="change_of_address.pdf", has_addendum=False)
   - notice: ALDocument.using(title="Notice of Filing", filename="notice_of_filing.pdf", has_addendum=False)
 ---
+objects:
+  - notice_bundle: ALDocumentBundle.using(elements=[notice, agencies_bundle], title ="Notice of  Filing", filename="notice_of_filing.pdf", has_addendum=False)
+---
 generic object: ALIndividual
 objects:
   - x.agencies: ALDocument.using(title="Additional Arresting Agencies", filename="additional_agencies.pdf", has_addendum=False)
 ---
+generic object: Thing
+objects: 
+  - x.order: ALDocument.using(title="Order to Expunge Juvenile Records (draft)", filename="order_to_expunge.pdf", has_addendum=False)
+  - x.records: ALDocument.using(title="Additional Records for Expungement", filename="records.pdf", has_addendum=False)
+---
 objects:
-  - arrests[i].order: ALDocument.using(title="Order to Expunge Juvenile Records (draft)", filename="order_to_expunge.pdf", has_addendum=False)
-  - arrests[i].records: ALDocument.using(title="Additional Records for Expungement", filename="records.pdf", has_addendum=False)
   - all_numbers[i].case_list: ALDocument.using(title="Case List", filename="case_list.pdf", has_addendum=False)
 ---
 objects: 
@@ -1044,10 +1040,10 @@ code: |
   order_denying_request.enabled = True
   change_of_address.enabled = True
   notice.enabled = True
-
+  notice_bundle.enabled = True
 ---
 objects:
-  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, request_bundle, case_list_bundle, notice, change_of_address, order_bundle, order_denying_request], filename="juvenile_expungement_forms.pdf", title="All forms")
+  - al_user_bundle: ALDocumentBundle.using(elements=[instructions, request_bundle, case_list_bundle, notice_bundle, change_of_address, order_bundle, order_denying_request], filename="juvenile_expungement_forms.pdf", title="All forms")
   #- al_court_bundle: ALDocumentBundle.using(elements=[request_bundle, order_denying_request], filename="expungement_forms.pdf", title="All forms")
 ---
 objects:
@@ -1081,66 +1077,66 @@ attachment:
     - "case_number_2": ${""}
     - "case_number_3": ${""}
     - "case_number_4": ${""}
-    - "arrest_1_number": ${arrests[0].case_number}
-    - "arrest_2_number": ${arrests[1].case_number}
-    - "arrest_3_number": ${arrests[2].case_number}
-    - "arrest_4_number": ${arrests[3].case_number}
-    - "arrest_5_number": ${arrests[4].case_number}
-    - "arrest_6_number": ${arrests[5].case_number}
-    - "arrest_7_number": ${arrests[6].case_number}
-    - "arrest_8_number": ${arrests[7].case_number}
-    - "arrest_9_number": ${arrests[8].case_number}
-    - "arrest_10_number": ${arrests[9].case_number}
-    - "arrest_1_lern": ${arrests[0].enforcement_number}
-    - "arrest_2_lern": ${arrests[1].enforcement_number}
-    - "arrest_3_lern": ${arrests[2].enforcement_number}
-    - "arrest_4_lern": ${arrests[3].enforcement_number}
-    - "arrest_5_lern": ${arrests[4].enforcement_number}
-    - "arrest_6_lern": ${arrests[5].enforcement_number}
-    - "arrest_7_lern": ${arrests[6].enforcement_number}
-    - "arrest_8_lern": ${arrests[7].enforcement_number}
-    - "arrest_9_lern": ${arrests[8].enforcement_number}
-    - "arrest_10_lern": ${arrests[9].enforcement_number}
-    - "arrest_1_agency": ${arrests[0].agency.name.first}
-    - "arrest_2_agency": ${arrests[1].agency.name.first}
-    - "arrest_3_agency": ${arrests[2].agency.name.first}
-    - "arrest_4_agency": ${arrests[3].agency.name.first}
-    - "arrest_5_agency": ${arrests[4].agency.name.first}
-    - "arrest_6_agency": ${arrests[5].agency.name.first}
-    - "arrest_7_agency": ${arrests[6].agency.name.first}
-    - "arrest_8_agency": ${arrests[7].agency.name.first}
-    - "arrest_9_agency": ${arrests[8].agency.name.first}
-    - "arrest_10_agency": ${arrests[9].agency.name.first}
-    - "arrest_1_charges": ${arrests[0].charge}
-    - "arrest_2_charges": ${arrests[1].charge}
-    - "arrest_3_charges": ${arrests[2].charge}
-    - "arrest_4_charges": ${arrests[3].charge}
-    - "arrest_5_charges": ${arrests[4].charge}
-    - "arrest_6_charges": ${arrests[5].charge}
-    - "arrest_7_charges": ${arrests[6].charge}
-    - "arrest_8_charges": ${arrests[7].charge}
-    - "arrest_9_charges": ${arrests[8].charge}
-    - "arrest_10_charges": ${arrests[9].charge}
-    - "arrest_1_date": ${arrests[0].date}
-    - "arrest_2_date": ${arrests[1].date}
-    - "arrest_3_date": ${arrests[2].date}
-    - "arrest_4_date": ${arrests[3].date}
-    - "arrest_5_date": ${arrests[4].date}
-    - "arrest_6_date": ${arrests[5].date}
-    - "arrest_7_date": ${arrests[6].date}
-    - "arrest_8_date": ${arrests[7].date}
-    - "arrest_9_date": ${arrests[8].date}
-    - "arrest_10_date": ${arrests[9].date}
-    - "arrest_1_outcome": ${arrests[0].outcome}
-    - "arrest_2_outcome": ${arrests[1].outcome}
-    - "arrest_3_outcome": ${arrests[2].outcome}
-    - "arrest_4_outcome": ${arrests[3].outcome}
-    - "arrest_5_outcome": ${arrests[4].outcome}
-    - "arrest_6_outcome": ${arrests[5].outcome}
-    - "arrest_7_outcome": ${arrests[6].outcome}
-    - "arrest_8_outcome": ${arrests[7].outcome}
-    - "arrest_9_outcome": ${arrests[8].outcome}
-    - "arrest_10_outcome": ${arrests[9].outcome}
+    - "arrest_1_number": ${qualified_arrests[0].case_number}
+    - "arrest_2_number": ${qualified_arrests[1].case_number}
+    - "arrest_3_number": ${qualified_arrests[2].case_number}
+    - "arrest_4_number": ${qualified_arrests[3].case_number}
+    - "arrest_5_number": ${qualified_arrests[4].case_number}
+    - "arrest_6_number": ${qualified_arrests[5].case_number}
+    - "arrest_7_number": ${qualified_arrests[6].case_number}
+    - "arrest_8_number": ${qualified_arrests[7].case_number}
+    - "arrest_9_number": ${qualified_arrests[8].case_number}
+    - "arrest_10_number": ${qualified_arrests[9].case_number}
+    - "arrest_1_lern": ${qualified_arrests[0].enforcement_number}
+    - "arrest_2_lern": ${qualified_arrests[1].enforcement_number}
+    - "arrest_3_lern": ${qualified_arrests[2].enforcement_number}
+    - "arrest_4_lern": ${qualified_arrests[3].enforcement_number}
+    - "arrest_5_lern": ${qualified_arrests[4].enforcement_number}
+    - "arrest_6_lern": ${qualified_arrests[5].enforcement_number}
+    - "arrest_7_lern": ${qualified_arrests[6].enforcement_number}
+    - "arrest_8_lern": ${qualified_arrests[7].enforcement_number}
+    - "arrest_9_lern": ${qualified_arrests[8].enforcement_number}
+    - "arrest_10_lern": ${qualified_arrests[9].enforcement_number}
+    - "arrest_1_agency": ${qualified_arrests[0].agency.name.first}
+    - "arrest_2_agency": ${qualified_arrests[1].agency.name.first}
+    - "arrest_3_agency": ${qualified_arrests[2].agency.name.first}
+    - "arrest_4_agency": ${qualified_arrests[3].agency.name.first}
+    - "arrest_5_agency": ${qualified_arrests[4].agency.name.first}
+    - "arrest_6_agency": ${qualified_arrests[5].agency.name.first}
+    - "arrest_7_agency": ${qualified_arrests[6].agency.name.first}
+    - "arrest_8_agency": ${qualified_arrests[7].agency.name.first}
+    - "arrest_9_agency": ${qualified_arrests[8].agency.name.first}
+    - "arrest_10_agency": ${qualified_arrests[9].agency.name.first}
+    - "arrest_1_charges": ${qualified_arrests[0].charge}
+    - "arrest_2_charges": ${qualified_arrests[1].charge}
+    - "arrest_3_charges": ${qualified_arrests[2].charge}
+    - "arrest_4_charges": ${qualified_arrests[3].charge}
+    - "arrest_5_charges": ${qualified_arrests[4].charge}
+    - "arrest_6_charges": ${qualified_arrests[5].charge}
+    - "arrest_7_charges": ${qualified_arrests[6].charge}
+    - "arrest_8_charges": ${qualified_arrests[7].charge}
+    - "arrest_9_charges": ${qualified_arrests[8].charge}
+    - "arrest_10_charges": ${qualified_arrests[9].charge}
+    - "arrest_1_date": ${qualified_arrests[0].date}
+    - "arrest_2_date": ${qualified_arrests[1].date}
+    - "arrest_3_date": ${qualified_arrests[2].date}
+    - "arrest_4_date": ${qualified_arrests[3].date}
+    - "arrest_5_date": ${qualified_arrests[4].date}
+    - "arrest_6_date": ${qualified_arrests[5].date}
+    - "arrest_7_date": ${qualified_arrests[6].date}
+    - "arrest_8_date": ${qualified_arrests[7].date}
+    - "arrest_9_date": ${qualified_arrests[8].date}
+    - "arrest_10_date": ${qualified_arrests[9].date}
+    - "arrest_1_outcome": ${qualified_arrests[0].outcome}
+    - "arrest_2_outcome": ${qualified_arrests[1].outcome}
+    - "arrest_3_outcome": ${qualified_arrests[2].outcome}
+    - "arrest_4_outcome": ${qualified_arrests[3].outcome}
+    - "arrest_5_outcome": ${qualified_arrests[4].outcome}
+    - "arrest_6_outcome": ${qualified_arrests[5].outcome}
+    - "arrest_7_outcome": ${qualified_arrests[6].outcome}
+    - "arrest_8_outcome": ${qualified_arrests[7].outcome}
+    - "arrest_9_outcome": ${qualified_arrests[8].outcome}
+    - "arrest_10_outcome": ${qualified_arrests[9].outcome}
     - "additional_arrests": ${True if arrests.number_gathered() > 10 else False}
     - "subsection_1": ${subsection_1_flag}
     - "subsection_2": ${subsection_2_flag}
@@ -1180,7 +1176,7 @@ attachment:
   pdf template file: juvenile_expungement_change_address.pdf  
   fields:
     - "filing_county": ${ filing_location.county }
-    - "user_name": ${users[0].name_full()}
+    - "user_name_1": ${users[0].name_full()}
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
@@ -1223,7 +1219,7 @@ attachment:
     - "agency_4_street": ${agencies_list[3].address.line_one(bare=True)}
     - "agency_4_csz": ${agencies_list[3].address.line_two()}
     - "states_attorney_address": ${states_attorney_address.on_one_line(bare=True)}
-    - "additional_agencies": ${True if agencies_list.number_gathered() > 4 else False}
+    - "additional_agencies": ${True if len(agencies_list) > 4 else False}
 ---
 reconsider: True
 code: |
@@ -1232,7 +1228,7 @@ code: |
   elements_for_records_bundle = []
   elements_for_agencies_bundle = []
   
-  for index, arrest in enumerate(arrests):
+  for index, arrest in enumerate(qualified_arrests):
     if index % 10 == 0:
       arrest.index_for_order = index
       arrest.order.enabled = True
@@ -1246,7 +1242,7 @@ code: |
 
   number_index = 0
   while number_index < len(all_numbers):
-    if number_index % 64 == 0:
+    if number_index % 65 == 0:
       all_numbers[number_index].index_for_case_list = number_index
       all_numbers[number_index].case_list.enabled = True
       elements_for_case_list_bundle.append(all_numbers[number_index].case_list)
@@ -1266,7 +1262,7 @@ reconsider: True
 code: |
   all_numbers.clear()
   numbers_index = 0
-  for arrest in arrests:
+  for arrest in qualified_arrests:
     if arrest.case_number != "":
       all_numbers.appendObject(Individual)
       all_numbers[numbers_index].name.first = arrest.case_number
@@ -1277,8 +1273,9 @@ code: |
       numbers_index += 1
   list_numbers = True
 ---
+generic object: Thing
 attachment:
-  variable name: arrests[i].order[j]
+  variable name: x.order[i]
   name: order
   filename: order
   editable: False
@@ -1295,17 +1292,17 @@ attachment:
     - "user_phone": ${phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else ""}
     - "user_email": ${users[0].email if users[0].has_email_address else ""}
     - "user_address": ${users[0].address.on_one_line(bare=True)}
-    - "arrest_1_number": ${arrests[i].case_number}
-    - "arrest_2_number": ${arrests[i+1].case_number}
-    - "arrest_3_number": ${arrests[i+2].case_number}
-    - "arrest_4_number": ${arrests[i+3].case_number}
-    - "arrest_5_number": ${arrests[i+4].case_number}
-    - "arrest_6_number": ${arrests[i+5].case_number}
-    - "arrest_7_number": ${arrests[i+6].case_number}
-    - "arrest_8_number": ${arrests[i+7].case_number}
-    - "arrest_9_number": ${arrests[i+8].case_number}
-    - "arrest_10_number": ${arrests[i+9].case_number}
-    - "additional_order": ${True if arrests.number_gathered() > (i+9) else False}
+    - "arrest_1_number": ${x.case_number}
+    - "arrest_2_number": ${qualified_arrests[x.index_for_order+1].case_number}
+    - "arrest_3_number": ${qualified_arrests[x.index_for_order+2].case_number}
+    - "arrest_4_number": ${qualified_arrests[x.index_for_order+3].case_number}
+    - "arrest_5_number": ${qualified_arrests[x.index_for_order+4].case_number}
+    - "arrest_6_number": ${qualified_arrests[x.index_for_order+5].case_number}
+    - "arrest_7_number": ${qualified_arrests[x.index_for_order+6].case_number}
+    - "arrest_8_number": ${qualified_arrests[x.index_for_order+7].case_number}
+    - "arrest_9_number": ${qualified_arrests[x.index_for_order+8].case_number}
+    - "arrest_10_number": ${qualified_arrests[x.index_for_order+9].case_number}
+    - "additional_order": ${True if len(qualified_arrests) > (x.index_for_order+9) else False}
 ---
 attachment:
   variable name: all_numbers[i].case_list[j]
@@ -1385,10 +1382,12 @@ attachment:
     - "record_61": ${all_numbers[i+61].name.first}
     - "record_62": ${all_numbers[i+62].name.first}
     - "record_63": ${all_numbers[i+63].name.first}
+    - "record_64": ${all_numbers[i+64].name.first}
     - "more_numbers": ${True if all_numbers.number_gathered() > (i+64) else False}
 ---
+generic object: Thing
 attachment:
-  variable name: arrests[i].records[j]
+  variable name: x.records[i]
   name: records
   filename: records
   editable: False
@@ -1401,38 +1400,38 @@ attachment:
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
     - "case_number": ${""}
-    - "arrest_1_number": ${arrests[i].case_number}
-    - "arrest_2_number": ${arrests[i+1].case_number}
-    - "arrest_3_number": ${arrests[i+2].case_number}
-    - "arrest_4_number": ${arrests[i+3].case_number}
-    - "arrest_5_number": ${arrests[i+4].case_number}
-    - "arrest_1_lern": ${arrests[i].enforcement_number}
-    - "arrest_2_lern": ${arrests[i+1].enforcement_number}
-    - "arrest_3_lern": ${arrests[i+2].enforcement_number}
-    - "arrest_4_lern": ${arrests[i+3].enforcement_number}
-    - "arrest_5_lern": ${arrests[i+4].enforcement_number}
-    - "arrest_1_agency": ${arrests[i].agency.name.first}
-    - "arrest_2_agency": ${arrests[i+1].agency.name.first}
-    - "arrest_3_agency": ${arrests[i+2].agency.name.first}
-    - "arrest_4_agency": ${arrests[i+3].agency.name.first}
-    - "arrest_5_agency": ${arrests[i+4].agency.name.first}
-    - "arrest_1_charges": ${arrests[i].charge}
-    - "arrest_2_charges": ${arrests[i+1].charge}
-    - "arrest_3_charges": ${arrests[i+2].charge}
-    - "arrest_4_charges": ${arrests[i+3].charge}
-    - "arrest_5_charges": ${arrests[i+4].charge}
-    - "arrest_1_date": ${arrests[i].date}
-    - "arrest_2_date": ${arrests[i+1].date}
-    - "arrest_3_date": ${arrests[i+2].date}
-    - "arrest_4_date": ${arrests[i+3].date}
-    - "arrest_5_date": ${arrests[i+4].date}
-    - "arrest_1_outcome": ${arrests[i].outcome}
-    - "arrest_2_outcome": ${arrests[i+1].outcome}
-    - "arrest_3_outcome": ${arrests[i+2].outcome}
-    - "arrest_4_outcome": ${arrests[i+3].outcome}
-    - "arrest_5_outcome": ${arrests[i+4].outcome}
+    - "arrest_1_number": ${x.case_number}
+    - "arrest_2_number": ${qualified_arrests[x.index_for_records+1].case_number}
+    - "arrest_3_number": ${qualified_arrests[x.index_for_records+2].case_number}
+    - "arrest_4_number": ${qualified_arrests[x.index_for_records+3].case_number}
+    - "arrest_5_number": ${qualified_arrests[x.index_for_records+4].case_number}
+    - "arrest_1_lern": ${x.enforcement_number}
+    - "arrest_2_lern": ${qualified_arrests[x.index_for_records+1].enforcement_number}
+    - "arrest_3_lern": ${qualified_arrests[x.index_for_records+2].enforcement_number}
+    - "arrest_4_lern": ${qualified_arrests[x.index_for_records+3].enforcement_number}
+    - "arrest_5_lern": ${qualified_arrests[x.index_for_records+4].enforcement_number}
+    - "arrest_1_agency": ${x.agency.name.first}
+    - "arrest_2_agency": ${qualified_arrests[x.index_for_records+1].agency.name.first}
+    - "arrest_3_agency": ${qualified_arrests[x.index_for_records+2].agency.name.first}
+    - "arrest_4_agency": ${qualified_arrests[x.index_for_records+3].agency.name.first}
+    - "arrest_5_agency": ${qualified_arrests[x.index_for_records+4].agency.name.first}
+    - "arrest_1_charges": ${x.charge}
+    - "arrest_2_charges": ${qualified_arrests[x.index_for_records+1].charge}
+    - "arrest_3_charges": ${qualified_arrests[x.index_for_records+2].charge}
+    - "arrest_4_charges": ${qualified_arrests[x.index_for_records+3].charge}
+    - "arrest_5_charges": ${qualified_arrests[x.index_for_records+4].charge}
+    - "arrest_1_date": ${x.date}
+    - "arrest_2_date": ${qualified_arrests[x.index_for_records+1].date}
+    - "arrest_3_date": ${qualified_arrests[x.index_for_records+2].date}
+    - "arrest_4_date": ${qualified_arrests[x.index_for_records+3].date}
+    - "arrest_5_date": ${qualified_arrests[x.index_for_records+4].date}
+    - "arrest_1_outcome": ${x.outcome}
+    - "arrest_2_outcome": ${qualified_arrests[x.index_for_records+1].outcome}
+    - "arrest_3_outcome": ${qualified_arrests[x.index_for_records+2].outcome}
+    - "arrest_4_outcome": ${qualified_arrests[x.index_for_records+3].outcome}
+    - "arrest_5_outcome": ${qualified_arrests[x.index_for_records+4].outcome}
 ---
-generic object: DAObject
+generic object: ALIndividual
 attachment:
   variable name: x.agencies[i]
   name: agencies
@@ -1442,14 +1441,14 @@ attachment:
   pdf template file: juvenile_expungement_agencies.pdf  
   fields:
     - "filing_county": ${ filing_location.county }
-    - "user_name": ${ users[0].name_full() }
+    - "user_name_1": ${ users[0].name_full() }
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
     - "case_number": ${""}
     - "agency_1_name": ${x.name.first}
     - "agency_1_street": ${x.address.line_one(bare=True)}
-    - "agency_1_csz": ${x.line_two()}
+    - "agency_1_csz": ${x.address.line_two()}
     - "agency_2_name": ${agencies_list[x.index_for_agencies+1].name.first}
     - "agency_2_street": ${agencies_list[x.index_for_agencies+1].address.line_one(bare=True)}
     - "agency_2_csz": ${agencies_list[x.index_for_agencies+1].address.line_two()}
@@ -1643,16 +1642,14 @@ review:
     show if: x.after_arrest == "court" and x.at_court == "other" and x.found_guilty == "felony_or_a" and not x.must_register
   - Edit: x.charge
     button: |
-      *What were you arrested for?**
+      **What were you arrested for?**
       ${x.charge}
-    show if: is_eligible(x)
   - Edit: x.agency.name.first
     button: |
       **Arresting agency**
       ${x.agency.name.first}
       ${x.agency.address.line_one(bare=True)}
-      ${ x.agency.address.line_two(bare=True)}
-    show if: is_eligible(x)
+      ${x.agency.address.line_two()}
   - Edit: x.outcome
     button: |
       **Outcome of the arrest:**
@@ -1674,12 +1671,10 @@ review:
       % else:
       * "**CE** - Guilty / Conviction with a Certificate of Eligibility for Expungement from Prisoner Review Board"
       % endif
-    show if: is_eligible(x)
   - Edit: x.case_number
     button: |
       **Case number:**
       ${x.case_number}
-    show if: is_eligible(x)
   - Edit: x.enforcement_number
     button: |
       **Law enforcement number:**
@@ -1688,7 +1683,6 @@ review:
       % else:
       ${x.enforcement_number}
       % endif
-    show if: is_eligible(x)
 continue button label: Next
 ---
 id: filing details review screen
