@@ -14,8 +14,9 @@ objects:
   - users: ALPeopleList.using(there_are_any=True)
   - arrests: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True)
   - all_numbers: DAList.using(object_type=Thing, there_is_another=False)
+  - agencies: ALPeopleList.using(there_are_any=True, there_is_another=False)
   - arrests[i].agency: ALIndividual
-  - agencies_list: ALPeopleList.using(there_are_any=True)
+  - arrests[i].dummy_agency: ALIndividual
   - filing_location: ALAddress
   - states_attorney_address: ALAddress
   - court_list: ALCourtLoader.using(file_name='docassemble.ILAO:data/sources/il_courts.xlsx')
@@ -78,7 +79,6 @@ code: |
   forms_assembling
 
   filter_arrests
-  refresh_agencies_list
   list_numbers
   refresh_bundles
   snapshot_forms
@@ -103,14 +103,43 @@ code: |
     
   if is_eligible(arrests[i]):
     arrests[i].charge
-    if i > 0:
-      refresh_agencies_list
-    arrests[i].agency.name.first
+
+    if any_earlier_eligible_arrests() and not defined('arrests[i].agency.name.first'):
+      if arrests[i].agency_selection == 'other':
+        #new_agency = agencies.appendObject(ALIndividual)
+        #new_agency.name.first
+        #arrests[i].agency = new_agency
+        arrests[i].agency_code_block
+      else:
+        arrests[i].agency = agencies[int(arrests[i].agency_selection)]
+    else:
+      arrests[i].agency_code_block
+      #arrests[i].agency.name.first
+      #agencies.append(arrests[i].agency)
+      #arrests[i].agency = new_agency
+    #arrests[i].agency.name.first
+    #arrests[i].which_agency
     arrests[i].outcome
     arrests[i].case_number
     arrests[i].enforcement_number  
 
   arrests[i].complete = True
+---
+code: |
+  arrests[i].dummy_agency.name.first
+  agencies.append(arrests[i].dummy_agency)
+  arrests[i].agency = agencies[-1]
+  arrests[i].agency_code_block = True
+---
+code: |
+  def any_earlier_eligible_arrests():
+    if arrests.number_gathered() == 1:
+      return False
+    else:
+      for arrest in arrests[:-1]:
+        if is_eligible(arrest):
+          return True
+    return False
 ---
 code: |
   def is_eligible(arrest):
@@ -619,111 +648,209 @@ fields:
     rows: 2
     maxlength: 50
 ---
-reconsider: True
-code: |
-  agencies_list = []
-  arrest_index = 0
-  while arrest_index < arrests.number_gathered():   
-    #arrests[arrest_index].debug
-    if arrest_index == 0:
-      agencies_list.append(arrests[arrest_index].agency)
-    elif getattr(arrests[arrest_index], 'agency_option', "undefined") == "other":
-      agencies_list.append(arrests[arrest_index].agency)    
-    arrest_index += 1
-  refresh_agencies_list = True
----
-id: agency list block debug
-continue button field: arrests[i].debug
+id: agency info
 question: |
-  Debug
-subquestion: |
-  Arrest index is ${arrest_index}
-
-  arrests number gathered is ${arrests.number_gathered()}
----
-id: arresting agency generic
-if: i > 0
-sets:
-  - arrests[i].agency.name.first
-question: |
-  What is the name and address of the law enforcement agency that arrested you?
+  What is the name and address of the agency that arrested you?
 subquestion: |
   This is often a police department.
 
    ${collapse_template(where_to_find_records_help)}
 fields:
-  - Agency: arrests[i].agency_option
-    input type: radio
-    choices:
-      code: |
-        [
-          {
-            "label": agency.name.first,
-            "value": str(index)
-          }
-          for index, agency in enumerate(agencies_list)
-        ] + [
-          {
-            "label": "Another agency",
-            "value": "other"
-          }
-        ]
+  - Agency name: arrests[i].dummy_agency.name.first
+    maxlength: 50
+  - Street address: arrests[i].dummy_agency.address.address
+    address autocomplete: True
+  - Address line 2: arrests[i].dummy_agency.address.unit
+    required: False
+  - City: arrests[i].dummy_agency.address.city
+  - State: arrests[i].dummy_agency.address.state
+    code: |
+      states_list()
+    default: IL   
+  - ZIP: arrests[i].dummy_agency.address.zip
+---
+id: agency info
+question: |
+  What is the name and address of the agency that arrested you?
+subquestion: |
+  This is often a police department.
+
+   ${collapse_template(where_to_find_records_help)}
+fields:
   - Agency name: arrests[i].agency.name.first
-    maxlength: 35
-    js show if: |
-      val("arrests[i].agency_option") == "other"
+    maxlength: 50
   - Street address: arrests[i].agency.address.address
     address autocomplete: True
-    js show if: |
-      val("arrests[i].agency_option") == "other"
   - Address line 2: arrests[i].agency.address.unit
     required: False
-    js show if: |
-      val("arrests[i].agency_option") == "other"
   - City: arrests[i].agency.address.city
-    js show if: |
-      val("arrests[i].agency_option") == "other"
   - State: arrests[i].agency.address.state
     code: |
       states_list()
-    default: IL      
-    js show if: |
-      val("arrests[i].agency_option") == "other"
-  - ZIP code: arrests[i].agency.address.zip  
-    js show if: |
-      val("arrests[i].agency_option") == "other"
-validation code: |
-  if arrests[i].agency_option != "other":
-    selected_agency = agencies_list[int(arrests[i].agency_option)]
-    arrests[i].agency.name.first = selected_agency.name.first
-    arrests[i].agency.address.address = selected_agency.address.address
-    arrests[i].agency.address.unit = selected_agency.address.unit
-    arrests[i].agency.address.city = selected_agency.address.city
-    arrests[i].agency.address.state = selected_agency.address.state
-    arrests[i].agency.address.zip = selected_agency.address.zip
+    default: IL   
+  - ZIP: arrests[i].agency.address.zip
 ---
-id: arresting agency zero
-sets:
-  - arrests[0].agency.name.first
+id: select or add agency
 question: |
-  What is the name and address of the law enforcement agency that arrested you?
+  Which agency arrested you on ${ arrests[i].date }?
 subquestion: |
   This is often a police department.
 
    ${collapse_template(where_to_find_records_help)}
 fields:
-  - Agency: arrests[0].agency.name.first
-    maxlength: 35
-  - Street address: arrests[0].agency.address.address
-    address autocomplete: True
-  - Address line 2: arrests[0].agency.address.unit
-    required: False
-  - City: arrests[0].agency.address.city
-  - State: arrests[0].agency.address.state
+  - no label: arrests[i].agency_selection
+    datatype: radio
     code: |
-      states_list()
-    default: IL      
-  - ZIP code: arrests[0].agency.address.zip
+      agency_choices()
+---
+code: |
+  def agency_choices():
+    choices = []
+    for j, agency in enumerate(agencies):
+      choices.append({ j: agency.name })
+    choices.append({ 'other': 'Other (add a new agency)' })
+    return choices
+---
+#id: arresting agency
+#question: |
+#  What is the name and address of the law enforcement agency that arrested you?
+#subquestion: |
+#  This is often a police department.
+#
+#   ${collapse_template(where_to_find_records_help)}
+#fields:
+#  - Agency: arrests[i].which_agency
+#    input type: radio
+#    show if: agencies.number_gathered() > 0
+#    choices:
+#      code: |
+#        [
+#          {
+#            "label": agency.name.first,
+#            "value": str(index)
+#          }
+#          for index, agency in enumerate(agencies)
+#        ] + [
+#          {
+#            "label": "Another agency",
+#            "value": "other"
+#          }
+#        ]
+#  - Agency name: new_agency.name.first
+#    maxlength: 35
+#    js show if: |
+#      val("agencies.number_gathered()") === 0 || val("arrests[i].which_agency") === "other"
+#  - Street address: new_agency.address.address
+#    address autocomplete: True
+#    js show if: |
+#      val("agencies.number_gathered()") === 0 || val("arrests[i].which_agency") === "other"
+#  - Address line 2: new_agency.address.unit
+#    required: False
+#    js show if: |
+#      val("agencies.number_gathered()") === 0 || val("arrests[i].which_agency") === "other"
+#  - City: new_agency.address.city
+#    js show if: |
+#      val("agencies.number_gathered()") === 0 || val("arrests[i].which_agency") === "other"
+#  - State: new_agency.address.state
+#    code: |
+#      states_list()
+#    default: IL      
+#    js show if: |
+#      val("agencies.number_gathered()") === 0 || val("arrests[i].which_agency") === "other"
+#  - ZIP code: new_agency.address.zip  
+#    js show if: |
+#      val("agencies.number_gathered()") === 0 || val("arrests[i].which_agency") === "other"
+#validation code: |
+#  if agencies.number_gathered() == 0 or arrests[i].which_agency == "other":
+#    agencies.append(new_agency)
+#    arrests[i].agency_pointer = agencies[-1]
+#  else:
+#    arrests[i].agency_pointer = agencies[int(arrests[i].which_agency)]
+#  new_agency.clear()
+---
+#id: arresting agency generic
+#if: i > 0
+#sets:
+#  - arrests[i].agency.name.first
+#question: |
+#  What is the name and address of the law enforcement agency that arrested you?
+#subquestion: |
+#  This is often a police department.
+#
+#   ${collapse_template(where_to_find_records_help)}
+#fields:
+#  - Agency: arrests[i].agency_option
+#    input type: radio
+#    choices:
+#      code: |
+#        [
+#          {
+#            "label": agency.name.first,
+#            "value": str(index)
+#          }
+#          for index, agency in enumerate(agencies_list)
+#        ] + [
+#          {
+#            "label": "Another agency",
+#            "value": "other"
+#          }
+#        ]
+#  - Agency name: arrests[i].agency.name.first
+#    maxlength: 35
+#    js show if: |
+#      val("arrests[i].agency_option") == "other"
+#  - Street address: arrests[i].agency.address.address
+#    address autocomplete: True
+#    js show if: |
+#      val("arrests[i].agency_option") == "other"
+#  - Address line 2: arrests[i].agency.address.unit
+#    required: False
+#    js show if: |
+#      val("arrests[i].agency_option") == "other"
+#  - City: arrests[i].agency.address.city
+#    js show if: |
+#      val("arrests[i].agency_option") == "other"
+#  - State: arrests[i].agency.address.state
+#    code: |
+#      states_list()
+#    default: IL      
+#    js show if: |
+#      val("arrests[i].agency_option") == "other"
+#  - ZIP code: arrests[i].agency.address.zip  
+#    js show if: |
+#      val("arrests[i].agency_option") == "other"
+#validation code: |
+#  if arrests[i].agency_option != "other":
+#    selected_agency = agencies_list[int(arrests[i].agency_option)]
+#    arrests[i].agency.name.first = selected_agency.name.first
+#    arrests[i].agency.address.address = selected_agency.address.address
+#    arrests[i].agency.address.unit = selected_agency.address.unit
+#    arrests[i].agency.address.city = selected_agency.address.city
+#    arrests[i].agency.address.state = selected_agency.address.state
+#    arrests[i].agency.address.zip = selected_agency.address.zip
+#---
+#id: arresting agency zero
+#sets:
+#  - arrests[0].agency.name.first
+#question: |
+#  What is the name and address of the law enforcement agency that arrested you?
+#subquestion: |
+#  This is often a police department.
+#
+#   ${collapse_template(where_to_find_records_help)}
+#fields:
+#  - Agency: arrests[0].agency.name.first
+#    maxlength: 35
+#  - Street address: arrests[0].agency.address.address
+#    address autocomplete: True
+#  - Address line 2: arrests[0].agency.address.unit
+#    required: False
+#  - City: arrests[0].agency.address.city
+#  - State: arrests[0].agency.address.state
+#    code: |
+#      states_list()
+#    default: IL      
+#  - ZIP code: arrests[0].agency.address.zip
 ---
 id: arrest case number
 question: |
@@ -1206,20 +1333,20 @@ attachment:
     - "user_address": ${users[0].address.on_one_line(bare=True)}
     - "for_self": ${ True}
     - "lawyer_check": ${False}
-    - "agency_1_name": ${agencies_list[0].name.first}
-    - "agency_1_street": ${agencies_list[0].address.line_one(bare=True)}
-    - "agency_1_csz": ${agencies_list[0].address.line_two()}
-    - "agency_2_name": ${agencies_list[1].name.first}
-    - "agency_2_street": ${agencies_list[1].address.line_one(bare=True)}
-    - "agency_2_csz": ${agencies_list[1].address.line_two()}
-    - "agency_3_name": ${agencies_list[2].name.first}
-    - "agency_3_street": ${agencies_list[2].address.line_one(bare=True)}
-    - "agency_3_csz": ${agencies_list[2].address.line_two()}
-    - "agency_4_name": ${agencies_list[3].name.first}
-    - "agency_4_street": ${agencies_list[3].address.line_one(bare=True)}
-    - "agency_4_csz": ${agencies_list[3].address.line_two()}
+    - "agency_1_name": ${agencies[0].name.first}
+    - "agency_1_street": ${agencies[0].address.line_one(bare=True)}
+    - "agency_1_csz": ${agencies[0].address.line_two()}
+    - "agency_2_name": ${agencies[1].name.first}
+    - "agency_2_street": ${agencies[1].address.line_one(bare=True)}
+    - "agency_2_csz": ${agencies[1].address.line_two()}
+    - "agency_3_name": ${agencies[2].name.first}
+    - "agency_3_street": ${agencies[2].address.line_one(bare=True)}
+    - "agency_3_csz": ${agencies[2].address.line_two()}
+    - "agency_4_name": ${agencies[3].name.first}
+    - "agency_4_street": ${agencies[3].address.line_one(bare=True)}
+    - "agency_4_csz": ${agencies[3].address.line_two()}
     - "states_attorney_address": ${states_attorney_address.on_one_line(bare=True)}
-    - "additional_agencies": ${True if len(agencies_list) > 4 else False}
+    - "additional_agencies": ${True if len(agencies) > 4 else False}
 ---
 reconsider: True
 code: |
@@ -1249,7 +1376,7 @@ code: |
     number_index += 1
   case_list_bundle.elements = elements_for_case_list_bundle
 
-  for index, agency in enumerate(agencies_list):
+  for index, agency in enumerate(agencies):
     if index > 3 and index % 4 == 0:
       agency.index_for_agencies = index
       agency.agencies.enabled = True
@@ -1449,15 +1576,15 @@ attachment:
     - "agency_1_name": ${x.name.first}
     - "agency_1_street": ${x.address.line_one(bare=True)}
     - "agency_1_csz": ${x.address.line_two()}
-    - "agency_2_name": ${agencies_list[x.index_for_agencies+1].name.first}
-    - "agency_2_street": ${agencies_list[x.index_for_agencies+1].address.line_one(bare=True)}
-    - "agency_2_csz": ${agencies_list[x.index_for_agencies+1].address.line_two()}
-    - "agency_3_name": ${agencies_list[x.index_for_agencies+2].name.first}
-    - "agency_3_street": ${agencies_list[x.index_for_agencies+2].address.line_one(bare=True)}
-    - "agency_3_csz": ${agencies_list[x.index_for_agencies+2].address.line_two()}
-    - "agency_4_name": ${agencies_list[x.index_for_agencies+3].name.first}
-    - "agency_4_street": ${agencies_list[x.index_for_agencies+3].address.line_one(bare=True)}
-    - "agency_4_csz": ${agencies_list[x.index_for_agencies+3].address.line_two()}
+    - "agency_2_name": ${agencies[x.index_for_agencies+1].name.first}
+    - "agency_2_street": ${agencies[x.index_for_agencies+1].address.line_one(bare=True)}
+    - "agency_2_csz": ${agencies[x.index_for_agencies+1].address.line_two()}
+    - "agency_3_name": ${agencies[x.index_for_agencies+2].name.first}
+    - "agency_3_street": ${agencies[x.index_for_agencies+2].address.line_one(bare=True)}
+    - "agency_3_csz": ${agencies[x.index_for_agencies+2].address.line_two()}
+    - "agency_4_name": ${agencies[x.index_for_agencies+3].name.first}
+    - "agency_4_street": ${agencies[x.index_for_agencies+3].address.line_one(bare=True)}
+    - "agency_4_csz": ${agencies[x.index_for_agencies+3].address.line_two()}
 ---
 id: review screen
 event: review_answers
@@ -1646,7 +1773,7 @@ review:
       ${x.charge}
   - Edit: x.agency.name.first
     button: |
-      **Arresting agency**
+      **Arresting agency:**
       ${x.agency.name.first}
       ${x.agency.address.line_one(bare=True)}
       ${x.agency.address.line_two()}
