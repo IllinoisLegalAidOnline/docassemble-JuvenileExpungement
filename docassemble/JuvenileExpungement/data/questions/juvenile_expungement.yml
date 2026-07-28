@@ -13,10 +13,12 @@ include:
 objects:
   - users: ALPeopleList.using(there_are_any=True)
   - arrests: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True)
-  - all_numbers: DAList.using(object_type=Thing, there_is_another=False)
-  - agencies: ALPeopleList.using(there_are_any=True, there_is_another=False)
+  - all_numbers: DAList.using(object_type=Thing, there_are_any=False, there_is_another=False)
+  - agencies: ALPeopleList.using(there_are_any=False, there_is_another=False)
+  - notice_agencies: ALPeopleList.using(there_are_any=False, there_is_another=False)
   - arrests[i].agency: ALIndividual
   - arrests[i].selected_agency: ALIndividual
+  - arrests[i].review_agencies: ALPeopleList.using(auto_gather=False, there_are_any=False, there_is_another=False)
   - filing_location: ALAddress
   - states_attorney_address: ALAddress
   - court_list: ALCourtLoader.using(file_name='docassemble.ILAO:data/sources/il_courts.xlsx')
@@ -79,6 +81,7 @@ code: |
   forms_assembling
 
   filter_arrests
+  build_notice_agencies
   list_numbers
   refresh_bundles
   snapshot_forms
@@ -133,7 +136,19 @@ code: |
   else:  
     arrests[i].agency.name.first
     arrests[i].selected_agency = arrests[i].agency
-    agencies.append(arrests[i].agency)
+
+    
+    already_appended_flag = False
+    for check_agency in agencies:
+      if arrests[i].agency == check_agency:
+        already_appended_flag = True
+    #temp_agency_index = 0
+    #while (temp_agency_index + 2) < agencies.number_gathered():
+    #  if arrests[i].agency == agencies[temp_agency_index]:
+    #    already_appended_flag = True
+    #  temp_agency_index += 1
+    if not already_appended_flag:
+      agencies.append(arrests[i].agency)
     if not defined("arrests[i].agency_selection"):
       arrests[i].agency_selection = "other"
 
@@ -192,6 +207,18 @@ code: |
     else:
       subsection_1_flag = True
   filter_arrests = True
+---
+reconsider: True
+code: |
+  notice_agencies.clear()
+  for agency in agencies:
+    agency.include_flag = False
+    for arrest in arrests:
+      if agency == arrest.agency:
+        agency.include_flag = True
+    if agency.include_flag:
+      notice_agencies.append(agency)
+  build_notice_agencies = True
 ---
 code: |
   stuff_to_snapshot = {
@@ -670,26 +697,26 @@ fields:
     rows: 2
     maxlength: 50
 ---
-#id: dummy agency info
-#question: |
-#  What is the name and address of the agency that arrested you?
-#subquestion: |
-#  This is often a police department.
-#
-#   ${collapse_template(where_to_find_records_help)}
-#fields:
-#  - Agency name: arrests[i].dummy_agency.name.first
-#    maxlength: 50
-#  - Street address: arrests[i].dummy_agency.address.address
-#    address autocomplete: True
-#  - Address line 2: arrests[i].dummy_agency.address.unit
-#    required: False
-#  - City: arrests[i].dummy_agency.address.city
-#  - State: arrests[i].dummy_agency.address.state
-#    code: |
-#      states_list()
-#    default: IL   
-#  - ZIP: arrests[i].dummy_agency.address.zip
+id: review agency info
+question: |
+  What is the name and address of the agency that arrested you?
+subquestion: |
+  This is often a police department.
+
+  ${collapse_template(where_to_find_records_help)}
+fields:
+  - Agency name: arrests[i].review_agencies[j].name.first
+    maxlength: 50
+  - Street address: arrests[i].review_agencies[j].address.address
+    address autocomplete: True
+  - Address line 2: arrests[i].review_agencies[j].address.unit
+    required: False
+  - City: arrests[i].review_agencies[j].address.city
+  - State: arrests[i].review_agencies[j].address.state
+    code: |
+      states_list()
+    default: IL
+  - ZIP: arrests[i].review_agencies[j].address.zip
 ---
 id: agency info
 question: |
@@ -712,6 +739,7 @@ fields:
     default: IL   
   - ZIP: arrests[i].agency.address.zip
 ---
+only sets: arrests[i].agency_selection
 id: select or add agency
 question: |
   Which agency arrested you on ${ arrests[i].date }?
@@ -724,6 +752,14 @@ fields:
     datatype: radio
     code: |
       agency_choices()
+validation code: |
+  if arrests[i].agency_selection != "other":
+    arrests[i].agency = agencies[
+      int(arrests[i].agency_selection)
+    ]
+
+  elif defined("arrests[i].agency_selection_before_review"):
+    arrests[i].agency = arrests[i].review_agencies.appendObject()
 ---
 code: |
   def agency_choices():
@@ -1355,20 +1391,20 @@ attachment:
     - "user_address": ${users[0].address.on_one_line(bare=True)}
     - "for_self": ${ True}
     - "lawyer_check": ${False}
-    - "agency_1_name": ${agencies[0].name.first}
-    - "agency_1_street": ${agencies[0].address.line_one(bare=True)}
-    - "agency_1_csz": ${agencies[0].address.line_two()}
-    - "agency_2_name": ${agencies[1].name.first}
-    - "agency_2_street": ${agencies[1].address.line_one(bare=True)}
-    - "agency_2_csz": ${agencies[1].address.line_two()}
-    - "agency_3_name": ${agencies[2].name.first}
-    - "agency_3_street": ${agencies[2].address.line_one(bare=True)}
-    - "agency_3_csz": ${agencies[2].address.line_two()}
-    - "agency_4_name": ${agencies[3].name.first}
-    - "agency_4_street": ${agencies[3].address.line_one(bare=True)}
-    - "agency_4_csz": ${agencies[3].address.line_two()}
+    - "agency_1_name": ${notice_agencies[0].name.first}
+    - "agency_1_street": ${notice_agencies[0].address.line_one(bare=True)}
+    - "agency_1_csz": ${notice_agencies[0].address.line_two()}
+    - "agency_2_name": ${notice_agencies[1].name.first}
+    - "agency_2_street": ${notice_agencies[1].address.line_one(bare=True)}
+    - "agency_2_csz": ${notice_agencies[1].address.line_two()}
+    - "agency_3_name": ${notice_agencies[2].name.first}
+    - "agency_3_street": ${notice_agencies[2].address.line_one(bare=True)}
+    - "agency_3_csz": ${notice_agencies[2].address.line_two()}
+    - "agency_4_name": ${notice_agencies[3].name.first}
+    - "agency_4_street": ${notice_agencies[3].address.line_one(bare=True)}
+    - "agency_4_csz": ${notice_agencies[3].address.line_two()}
     - "states_attorney_address": ${states_attorney_address.on_one_line(bare=True)}
-    - "additional_agencies": ${True if len(agencies) > 4 else False}
+    - "additional_agencies": ${True if len(notice_agencies) > 4 else False}
 ---
 reconsider: True
 code: |
@@ -1398,7 +1434,7 @@ code: |
     number_index += 1
   case_list_bundle.elements = elements_for_case_list_bundle
 
-  for index, agency in enumerate(agencies):
+  for index, agency in enumerate(notice_agencies):
     if index > 3 and index % 4 == 0:
       agency.index_for_agencies = index
       agency.agencies.enabled = True
@@ -1598,15 +1634,15 @@ attachment:
     - "agency_1_name": ${x.name.first}
     - "agency_1_street": ${x.address.line_one(bare=True)}
     - "agency_1_csz": ${x.address.line_two()}
-    - "agency_2_name": ${agencies[x.index_for_agencies+1].name.first}
-    - "agency_2_street": ${agencies[x.index_for_agencies+1].address.line_one(bare=True)}
-    - "agency_2_csz": ${agencies[x.index_for_agencies+1].address.line_two()}
-    - "agency_3_name": ${agencies[x.index_for_agencies+2].name.first}
-    - "agency_3_street": ${agencies[x.index_for_agencies+2].address.line_one(bare=True)}
-    - "agency_3_csz": ${agencies[x.index_for_agencies+2].address.line_two()}
-    - "agency_4_name": ${agencies[x.index_for_agencies+3].name.first}
-    - "agency_4_street": ${agencies[x.index_for_agencies+3].address.line_one(bare=True)}
-    - "agency_4_csz": ${agencies[x.index_for_agencies+3].address.line_two()}
+    - "agency_2_name": ${notice_agencies[x.index_for_agencies+1].name.first}
+    - "agency_2_street": ${notice_agencies[x.index_for_agencies+1].address.line_one(bare=True)}
+    - "agency_2_csz": ${notice_agencies[x.index_for_agencies+1].address.line_two()}
+    - "agency_3_name": ${notice_agencies[x.index_for_agencies+2].name.first}
+    - "agency_3_street": ${notice_agencies[x.index_for_agencies+2].address.line_one(bare=True)}
+    - "agency_3_csz": ${notice_agencies[x.index_for_agencies+2].address.line_two()}
+    - "agency_4_name": ${notice_agencies[x.index_for_agencies+3].name.first}
+    - "agency_4_street": ${notice_agencies[x.index_for_agencies+3].address.line_one(bare=True)}
+    - "agency_4_csz": ${notice_agencies[x.index_for_agencies+3].address.line_two()}
 ---
 id: review screen
 event: review_answers
@@ -1707,6 +1743,16 @@ edit:
 delete buttons: True
 confirm: True
 ---
+only sets: arrests[i].prepare_agency_review
+code: |
+  arrests[i].review_agencies
+  if defined("arrests[i].agency_selection"):
+    arrests[i].agency_selection_before_review = arrests[i].agency_selection
+  else:
+    arrests[i].agency_selection_before_review = None
+
+  arrests[i].prepare_agency_review = True
+---
 id: arrests details review screen
 continue button field: x.review_records_details
 generic object: DAObject
@@ -1795,14 +1841,16 @@ review:
       ${x.charge}
   - label: Edit
     fields:
+      - recompute:
+        - x.prepare_agency_review
       - x.agency_selection
       - x.agency.name.first
       - recompute:
-        - x.agency_code_block
+          - x.agency_code_block
     button: |
       **Arresting agency:**
       ${x.selected_agency.name.first}
-      
+  
       ${x.selected_agency.address.line_one(bare=True)}
       ${x.selected_agency.address.line_two()}
   - Edit: x.outcome
