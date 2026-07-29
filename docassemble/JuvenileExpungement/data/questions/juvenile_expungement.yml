@@ -48,6 +48,7 @@ code: |
   sees_nav_bar
   snapshot_start
   how_to_use
+  set_progress(5)
   about_expungement
   accept_terms
   about_juvenile_records
@@ -56,22 +57,28 @@ code: |
     more_expungement_info
     records_info
     more_records_info
+  immigration_status_info
 
+  set_progress(20)
   nav.set_section('section_records')
+  users[0].birthdate
   if filing_location.county == "Cook":
     ir_number_check
   arrests_intro
+  set_progress(40)
   arrests.gather()
-  
-  #if len(qualified_arrests) == 0:
-  #  no_cases_kickout
 
+  filter_arrests
+  if len(qualified_arrests) == 0:
+    no_cases_kickout
+  
+  set_progress(70)
   nav.set_section('section_filing')
   users[0].name.first
   users[0].has_other_names
-  users[0].birthdate
   users[0].address.address
   users[0].has_email_address
+  set_progress(90)
   change_address
   states_attorney_address.address
   e_signature
@@ -80,13 +87,12 @@ code: |
   nav.set_section('section_download')
   forms_assembling
 
-  filter_arrests
+  set_progress(100)
   build_notice_agencies
   list_numbers
   refresh_bundles
   snapshot_forms
   get_docs_screen
-
 ---
 #arrests gather loop
 code: |
@@ -108,19 +114,6 @@ code: |
     arrests[i].charge
 
     arrests[i].agency_code_block  
-    #if any_earlier_eligible_arrests() and not defined('arrests[i].agency.name.first'):
-    #  if arrests[i].agency_selection == 'other':
-    #    #new_agency = agencies.appendObject(ALIndividual)
-    #    #new_agency.name.first
-    #    #arrests[i].agency = new_agency
-    #  else:
-    #    arrests[i].agency = agencies[int(arrests[i].agency_selection)]
-    #else:
-    #  #arrests[i].agency.name.first
-    #  #agencies.append(arrests[i].agency)
-    #  #arrests[i].agency = new_agency
-    #arrests[i].agency.name.first
-    #arrests[i].which_agency
     arrests[i].outcome
     arrests[i].case_number
     arrests[i].enforcement_number  
@@ -129,24 +122,18 @@ code: |
 ---
 only sets: arrests[i].agency_code_block
 code: |
-  if any_earlier_eligible_arrests() and arrests[i].agency_selection != "other":
+  if any_other_eligible_arrests() and arrests[i].agency_selection != "other":
     arrests[i].agency = agencies[int(arrests[i].agency_selection)]
     arrests[i].selected_agency = arrests[i].agency
     
   else:  
     arrests[i].agency.name.first
     arrests[i].selected_agency = arrests[i].agency
-
     
     already_appended_flag = False
     for check_agency in agencies:
       if arrests[i].agency == check_agency:
         already_appended_flag = True
-    #temp_agency_index = 0
-    #while (temp_agency_index + 2) < agencies.number_gathered():
-    #  if arrests[i].agency == agencies[temp_agency_index]:
-    #    already_appended_flag = True
-    #  temp_agency_index += 1
     if not already_appended_flag:
       agencies.append(arrests[i].agency)
     if not defined("arrests[i].agency_selection"):
@@ -154,22 +141,8 @@ code: |
 
   arrests[i].agency_code_block = True
 ---
-#reconsider: True
-#only sets: agency_cleanup_for_review
-#code: |
-#  for arrest in arrest:
-#    if is_eligible(arrest):
-#      if arrests[i].agency_selection != "other":
-#        arrests[i].agency = arrests[i].selected_agency
-#  agency_cleanup_for_review = True
----
-id: more arrests debug
-continue button field: arrests[i].more_debug
-question: |
-  Made it this far!
----
 code: |
-  def any_earlier_eligible_arrests():
+  def any_other_eligible_arrests():
     if arrests.number_gathered() == 1:
       return False
     else:
@@ -278,7 +251,7 @@ subquestion: |
   * Case number,
   * Charge,
   * Outcome, and
-  * Date of conviction
+  * Date the case or sentence ended, if any.
     
   This information may be found on:
 
@@ -311,6 +284,17 @@ subquestion: |
 
   To learn more about expungement, read ILAO's article [**starting a request to expunge or seal a juvenile arrest record**](https://www.illinoislegalaid.org/legal-information/starting-request-expunge-or-seal-juvenile-arrest-record).
 ---
+id: immigration status info
+continue button field: immigration_status_info
+question: |
+  Immigration status
+subquestion: |
+  Expunging a juvenile record does not erase it for immigration purposes. US immigration authorities can still see sealed or expunged records, and applicants must disclose all arrests, including juvenile offenses.
+
+  **Important:** Filing to expunge records could seriously affect your immigration status. Speak to an immigration lawyer before filing to expunge or seal any criminal or juvenile records. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+
+  To learn more, read ILAO's article, [**Should I clear my criminal record for immigration purposes?**](https://www.illinoislegalaid.org/node/51801)
+---
 id: read or skip information
 question: |
   More information about clearing your criminal record
@@ -319,7 +303,7 @@ subquestion: |
 
   You can also read more on the next four screens of this Easy Form. If you want to read more information now, click **Yes**. You can go through it before making your forms.
 
-  If you want to read more information later, click **No**. It is linked on any Review screen. Just click **:edit: Edit answers** later in the Easy Form.  Also, the information will be included in the instructions you can download when you get your forms.
+  If you want to read more information later, click **No**. It is linked on any Review screen. Just click **:edit: Edit answers** later in the Easy Form. Also, the information will be included in the instructions you can download when you get your forms.
 
   **Note:** We recommend you read this information now. If you miss something, you can always come back to it later. 
 fields:
@@ -331,7 +315,7 @@ continue button field: expungement_info
 question: |
   Clearing your criminal record in Illinois
 subquestion: |
-  When you are arrested or charged with an offense, a criminal record is created, even if you are not found guilty. Juvenile records can be read by law enforcement agencies, some employers, and some government agencies. To have your records erased or hidden you must file a *${ form_name }* with the court and have a judge approve your *Request*.
+  When you are arrested or charged with an offense, a criminal record is created, even if you are not found guilty. Juvenile records can be read by law enforcement agencies, some employers, and some government agencies. To have your records erased or hidden, you must file a *${ form_name }* with the court and have a judge approve your *Request*.
 
   There are three ways to clear your criminal record:
 
@@ -376,7 +360,7 @@ continue button field: more_records_info
 question: |
   How to view or get copies of your criminal records
 subquestion: |
-  Juvenile arrest records are available at the Juvenile Courthouse located at 1100 South Hamilton in Chicago. You can also get assistance from [**Legal Aid Chicago’s Juvenile Expungement Help Desk**](https://legalaidchicago.org/get-help/court-based-help-desks/).  If you were arrested by the Chicago Police Department, you can also get your RAP sheet from them.
+  Juvenile arrest records are available at the Juvenile Courthouse located at 1100 South Hamilton in Chicago. You can also get assistance from [**Legal Aid Chicago’s Juvenile Expungement Help Desk**](https://legalaidchicago.org/get-help/court-based-help-desks/). If you were arrested by the Chicago Police Department, you can also get your RAP sheet from them.
 
   In the rest of Illinois, you can get your records from the agency that arrested you or through the Illinois State Police's Access and Review Process.
 
@@ -385,10 +369,10 @@ subquestion: |
   Records from the **Circuit Clerk**: Many court records are available online. Some counties, like Cook County, do not provide online access to criminal records.
   ${ collapse_template(clerk_records_help) } 
   
-  Records from the **Illinois State Police**: You are allowed to access your entire criminal history information from the Illinois State Police. Although not required, it is the best available source for your statewide criminal record. Please note, there might be discrepancies or missing information.
+  Records from the **Illinois State Police**: You can request your entire criminal history information from the Illinois State Police. Although not required, it is the best available source for your statewide criminal record. Please note, there might be discrepancies or missing information.
   ${ collapse_template(isp_records_help) }
 
-  Records from the **Chicago Police Department**: If you were arrested in Chicago, you must get your records from the Chicago Police Department. Order a RAP sheet from the Chicago Police Department if you were arrested in Chicago. There will be a fee.
+  Records from the **Chicago Police Department**: If you were arrested by the Chicago Police Department, you must get your records from them. You can order a RAP sheet from the Chicago Police Department. There will be a fee.
   ${ collapse_template(cpd_records_help) }
 ---
 template: clerk_records_help
@@ -414,7 +398,7 @@ content: |
     [isp.illinois.gov/BureauOfIdentification](https://isp.illinois.gov/BureauOfIdentification)
 
   * From your local law enforcement agency:[NEWLINE]
-    Every law enforcement agency is allowed to provide you this information. Check with your local law enforcement agency to find out costs and times for fingerprinting.
+    Every law enforcement agency is allowed to give you this information. Check with your local law enforcement agency to find out costs and times for fingerprinting.
 
   * From any licensed LiveScan vendor to get your transcript using your fingerprint. Find a Fingerprint Vendor at the [Illinois Department of Financial and Professional Regulation](https://idfprapps.illinois.gov/licenselookup/fingerprintlist.asp) website.
 ---
@@ -443,7 +427,7 @@ subquestion: |
 
   ${collapse_template(seventeen_years)}
 
-  A juvenile record of the arrest exists even if you never went to court or saw a judge. If you are unsure if you were arrested, you can contact the law enforcement agency that arrested you.
+  An arrest can have a juvenile record even if you never went to court or saw a judge. If you are unsure if you were arrested, you can contact the law enforcement agency that arrested you.
 
   Juvenile records are automatically sealed. The public cannot see them without a court order. However, some employers and government agencies still have access unless the records are expunged.
 
@@ -471,7 +455,7 @@ id: other names
 question: |
   Do you have any other names that were used in your cases or arrests?
 subquestion: |
-  If you used other names, list them here. This can help make sure the correct records are expunged or sealed.
+  If you used other names, list them here. This can help make sure the correct records are expunged.
 fields:
   - no label: users[0].has_other_names
     datatype: yesnoradio
@@ -504,7 +488,7 @@ fields:
     code: |
       ilao_court_county_lookup(court_list)
 validation code: |
-  if filing_location.trial_court_index == "-1":
+  if filing_location.trial_court_index == -1:
     trial_court = court_list.as_court('trial_court', 15)
   else:
     trial_court = court_list.as_court('trial_court', filing_location.trial_court_index)
@@ -513,7 +497,7 @@ template: multiple_counties
 subject: |
   **What if I have arrests in more than one county?**
 content: |
-  While this program creates a *Request to expunge juvenile records* that can expunge more than one arrest, they must be from the same county.
+  While this program creates a *Request to Expunge Juvenile Records* that can expunge more than one arrest, they must be from the same county.
   
   If you have records in more than one county, you will have to use this program more than once to create forms for each county. 
 ---
@@ -540,9 +524,9 @@ continue button field: arrests_intro
 question: |
   Arrests and court records
 subquestion: |
-  The next screens will ask about your juvenile records. These include your arrest records and your court file. The questions will ask details to check if the arrests and prosecutions are eligible for expungement.
+  The next screens will ask about your juvenile records. These include your arrest records and your court file. The questions will ask for details to check if the arrests and prosecutions are eligible for expungement.
   
-  This program will only work for the arrests and prosecutions it finds expungeable. Even if this program says a case is not expungeable, there may be other ways to remove it from your record. You may want to talk to a lawyer about expungement. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area. 
+  This program will only work for the arrests and court records that appear eligible for expungement. Even if this program says a case is not expungeable, there may be other ways to remove it from your record. You may want to talk to a lawyer about expungement. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area. 
 ---
 id: arrest date
 question: |
@@ -563,13 +547,15 @@ validation code: |
 id: after arrest
 question: |
   What happened after the ${arrests[i].date} arrest?
-field: arrests[i].after_arrest
-choices:
-  - I was released without being charged in court.: no_charge
-  - I was given a diversion program at the police station or at the probation department.: diversion
-  - I was given supervision, which the court said was completed successfully.: successful_supervision
-  - I was given supervision, which the court said was **not** completed successfully.: failed_supervision
-  - I went to court (saw a judge).: court
+fields: 
+  - no label: arrests[i].after_arrest
+    input type: radio
+    choices:
+      - I was released without being charged in court.: no_charge
+      - I was given a diversion program at the police station or at the probation department.: diversion
+      - I was given supervision, which the court said was completed successfully.: successful_supervision
+      - I was given supervision, which the court said was **not** completed successfully.: failed_supervision
+      - I went to court (saw a judge).: court
 ---
 id: at court
 question: |
@@ -577,7 +563,7 @@ question: |
 field: arrests[i].at_court
 choices:
   - The case was thrown out (dismissed).: dismissed
-  - I was found not delinquent (not guilty).: delinquent
+  - I was found not delinquent (not guilty).: not_delinquent
   - Something else happened: other
 ---
 id: found guilty
@@ -587,7 +573,7 @@ field: arrests[i].found_guilty
 choices:
   - A traffic offense: traffic
   - First-degree murder or a felony sex offense: murder
-  - A felony or class A misdemeanor: felony_or_a
+  - A felony or Class A misdemeanor: felony_or_a
   - A Class B or Class C misdemeanor: b_or_c
   - A petty offense: petty
   - No, I was not found guilty of any of these.: other
@@ -596,7 +582,7 @@ id: arrest registry
 question: |
   Did the court require you to register on the Juvenile Sex Offender Registry?
 subquestion: |
-  If you were found guilty for a sex offense, the court should have told you that you must register as a Juvenile Sex Offender.
+  If you were found guilty of a sex offense, the court should have told you that you must register as a Juvenile Sex Offender.
 
   To learn more about the Juvenile Sex Offender Registry, read ILAO's article, [**Can a sex offender be removed from the registry?**](https://www.illinoislegalaid.org/legal-information/appealing-my-registration-sex-offender).
 fields:
@@ -610,7 +596,7 @@ question: |
 subquestion: |
   The ${arrests[i].date} arrest is eligible to be expunged using this form.
 
-  **Note:** even though this case is eligible to be expunged, it is still up to the judge to decide.
+  **Note:** Even though this case is eligible to be expunged, it is still up to the judge to decide.
 ---
 id: juvenile case end date
 question:  |
@@ -696,6 +682,8 @@ fields:
     input type: area
     rows: 2
     maxlength: 50
+  - note: |
+      The form has room for about **50 characters** including spaces.
 ---
 id: review agency info
 question: |
@@ -769,152 +757,11 @@ code: |
     choices.append({ 'other': 'Other (add a new agency)' })
     return choices
 ---
-#id: arresting agency
-#question: |
-#  What is the name and address of the law enforcement agency that arrested you?
-#subquestion: |
-#  This is often a police department.
-#
-#   ${collapse_template(where_to_find_records_help)}
-#fields:
-#  - Agency: arrests[i].which_agency
-#    input type: radio
-#    show if: agencies.number_gathered() > 0
-#    choices:
-#      code: |
-#        [
-#          {
-#            "label": agency.name.first,
-#            "value": str(index)
-#          }
-#          for index, agency in enumerate(agencies)
-#        ] + [
-#          {
-#            "label": "Another agency",
-#            "value": "other"
-#          }
-#        ]
-#  - Agency name: new_agency.name.first
-#    maxlength: 35
-#    js show if: |
-#      val("agencies.number_gathered()") === 0 || val("arrests[i].which_agency") === "other"
-#  - Street address: new_agency.address.address
-#    address autocomplete: True
-#    js show if: |
-#      val("agencies.number_gathered()") === 0 || val("arrests[i].which_agency") === "other"
-#  - Address line 2: new_agency.address.unit
-#    required: False
-#    js show if: |
-#      val("agencies.number_gathered()") === 0 || val("arrests[i].which_agency") === "other"
-#  - City: new_agency.address.city
-#    js show if: |
-#      val("agencies.number_gathered()") === 0 || val("arrests[i].which_agency") === "other"
-#  - State: new_agency.address.state
-#    code: |
-#      states_list()
-#    default: IL      
-#    js show if: |
-#      val("agencies.number_gathered()") === 0 || val("arrests[i].which_agency") === "other"
-#  - ZIP code: new_agency.address.zip  
-#    js show if: |
-#      val("agencies.number_gathered()") === 0 || val("arrests[i].which_agency") === "other"
-#validation code: |
-#  if agencies.number_gathered() == 0 or arrests[i].which_agency == "other":
-#    agencies.append(new_agency)
-#    arrests[i].agency_pointer = agencies[-1]
-#  else:
-#    arrests[i].agency_pointer = agencies[int(arrests[i].which_agency)]
-#  new_agency.clear()
----
-#id: arresting agency generic
-#if: i > 0
-#sets:
-#  - arrests[i].agency.name.first
-#question: |
-#  What is the name and address of the law enforcement agency that arrested you?
-#subquestion: |
-#  This is often a police department.
-#
-#   ${collapse_template(where_to_find_records_help)}
-#fields:
-#  - Agency: arrests[i].agency_option
-#    input type: radio
-#    choices:
-#      code: |
-#        [
-#          {
-#            "label": agency.name.first,
-#            "value": str(index)
-#          }
-#          for index, agency in enumerate(agencies_list)
-#        ] + [
-#          {
-#            "label": "Another agency",
-#            "value": "other"
-#          }
-#        ]
-#  - Agency name: arrests[i].agency.name.first
-#    maxlength: 35
-#    js show if: |
-#      val("arrests[i].agency_option") == "other"
-#  - Street address: arrests[i].agency.address.address
-#    address autocomplete: True
-#    js show if: |
-#      val("arrests[i].agency_option") == "other"
-#  - Address line 2: arrests[i].agency.address.unit
-#    required: False
-#    js show if: |
-#      val("arrests[i].agency_option") == "other"
-#  - City: arrests[i].agency.address.city
-#    js show if: |
-#      val("arrests[i].agency_option") == "other"
-#  - State: arrests[i].agency.address.state
-#    code: |
-#      states_list()
-#    default: IL      
-#    js show if: |
-#      val("arrests[i].agency_option") == "other"
-#  - ZIP code: arrests[i].agency.address.zip  
-#    js show if: |
-#      val("arrests[i].agency_option") == "other"
-#validation code: |
-#  if arrests[i].agency_option != "other":
-#    selected_agency = agencies_list[int(arrests[i].agency_option)]
-#    arrests[i].agency.name.first = selected_agency.name.first
-#    arrests[i].agency.address.address = selected_agency.address.address
-#    arrests[i].agency.address.unit = selected_agency.address.unit
-#    arrests[i].agency.address.city = selected_agency.address.city
-#    arrests[i].agency.address.state = selected_agency.address.state
-#    arrests[i].agency.address.zip = selected_agency.address.zip
-#---
-#id: arresting agency zero
-#sets:
-#  - arrests[0].agency.name.first
-#question: |
-#  What is the name and address of the law enforcement agency that arrested you?
-#subquestion: |
-#  This is often a police department.
-#
-#   ${collapse_template(where_to_find_records_help)}
-#fields:
-#  - Agency: arrests[0].agency.name.first
-#    maxlength: 35
-#  - Street address: arrests[0].agency.address.address
-#    address autocomplete: True
-#  - Address line 2: arrests[0].agency.address.unit
-#    required: False
-#  - City: arrests[0].agency.address.city
-#  - State: arrests[0].agency.address.state
-#    code: |
-#      states_list()
-#    default: IL      
-#  - ZIP code: arrests[0].agency.address.zip
----
 id: arrest case number
 question: |
   What is the case number of your ${arrests[i].date} arrest?
 subquestion: |
-  **Note**: It is important to add the case number so the court case records and the arrest records can be expunged. If you know there is a court case but can't find the number, you can use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  **Note:** It is important to add the case number so the court case records and the arrest records can be expunged. If you know there is a court case but can't find the number, you can use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
   
   If you did not go to court for the ${arrests[i].date} arrest, you can leave this blank.
 
@@ -928,7 +775,7 @@ id: law enforcement record number
 question: |
   What is the law enforcement record number for the ${arrests[i].date} arrest?
 subquestion: |
-  **Note**: It is important to add the law enforcement record number so the arrest records can be expunged. The number could be a Document Control Number (DCN) or a Central Booking number (CB). If you can't find the number you can use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find a lawyer near you.
+  **Note:** It is important to add the law enforcement record number so the arrest records can be expunged. The number could be a Document Control Number (DCN) or a Central Booking number (CB). If you can't find the number, you can use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find a lawyer near you.
   
   If there is no law enforcement record number, you can leave this blank.
 
@@ -957,8 +804,8 @@ fields:
     choices:
       - "**RWC** - Released Without Charge": RWC
       - "**DA** - Dismissal or Acquittal, Finding of No Probable Cause (FNPC), Found Not Guilty (FNG), Nolle Prosequi, Non-Suit, Stricken Off with Leave to Reinstate (SOL)": DA
-      - "**S** - Court Supervision, Completed successfully": S
-      - "**QP** - First Offender Drug Probation or Qualified Probation, Completed successfully": QP
+      - "**S** - Court Supervision, Completed Successfully": S
+      - "**QP** - First Offender Drug Probation or Qualified Probation, Completed Successfully": QP
       - "**FI** - Found Factually Innocent": FI
       - "**RV** - Guilty / Conviction Reversed or Vacated": RV
       - "**P** - Guilty / Conviction with a Pardon from the Governor": P
@@ -990,7 +837,7 @@ subquestion: |
 
   You can talk with a lawyer to discuss your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
 
-  If you made a mistake, you can click the **Arrests** button to change your answers.
+  If you made a mistake, you can click the **Your records** or **:edit: Edit answers** button to change your answers.
 buttons:
   - Exit: exit
   - Restart: restart
@@ -1069,7 +916,7 @@ subquestion: |
 ---
 id: states attorney address
 question: |
-  What is the address of ${end_in_county(filing_location.county)}'s state's attorney?
+  What is the address of the ${end_in_county(filing_location.county)} State's Attorney's office?
 subquestion: | 
   You should be able to find this address on the Internet. You can click [**Illinois ${end_in_county(filing_location.county)} State's Attorney address**](https://www.google.com/search?q=${filing_location.county}+county+illinois+state%27s+attorney%27s+office) to search for it using Google.
   
@@ -1119,7 +966,7 @@ question: |
 subquestion: |
   After you download your forms, you must file them with the court. This program **does not file** your forms for you. To learn about the filing process, see ILAO's [**Court process for expungement or sealing FAQ**](https://www.illinoislegalaid.org/node/185996).
 
-  There may be fees to get records from police departments, certified dispositions, or court filing fees. There also may be an Illinois State Police processing fee to process your expungement or sealing court order. The Circuit Clerk collects this fee with the filing fee.
+  There may be fees to get records from police departments, certified dispositions, or court filing fees. There also may be an Illinois State Police processing fee to process your expungement court order. The Circuit Clerk collects this fee with the filing fee.
 
   **Note:** If you cannot afford the Circuit Clerk filing fee or the Illinois State Police processing fee, you can ask the court to waive those fees. You can use ILAO's [**Fee waiver Easy Form**](https://www.illinoislegalaid.org/node/30831) to make forms to ask the court to file for free or at a reduced cost.
 
@@ -1127,7 +974,7 @@ subquestion: |
   
   Finally, the court will decide on your *Request*. To learn about what happens after the court makes its decision, read ILAO's [**After your expungement or sealing case is decided FAQ**](https://www.illinoislegalaid.org/node/186001).
   
-  You can read the instructions you can download on an upcoming screen to learn more about what's next and how to get additional help.
+  To learn more, download and read the "How to Expunge Juvenile Records" instructions at the end of this program.
 ---
 id: forms assembling
 continue button field: forms_assembling
@@ -1322,7 +1169,7 @@ attachment:
     - "arrest_8_outcome": ${qualified_arrests[7].outcome}
     - "arrest_9_outcome": ${qualified_arrests[8].outcome}
     - "arrest_10_outcome": ${qualified_arrests[9].outcome}
-    - "additional_arrests": ${True if arrests.number_gathered() > 10 else False}
+    - "additional_arrests": ${True if len(qualified_arrests) > 10 else False}
     - "subsection_1": ${subsection_1_flag}
     - "subsection_2": ${subsection_2_flag}
     - "e_signature": ${users[0].name_full() if e_signature else ""}
@@ -1487,7 +1334,7 @@ attachment:
     - "arrest_8_number": ${qualified_arrests[x.index_for_order+7].case_number}
     - "arrest_9_number": ${qualified_arrests[x.index_for_order+8].case_number}
     - "arrest_10_number": ${qualified_arrests[x.index_for_order+9].case_number}
-    - "additional_order": ${True if len(qualified_arrests) > (x.index_for_order+9) else False}
+    - "additional_order": ${True if len(qualified_arrests) > (x.index_for_order+10) else False}
 ---
 attachment:
   variable name: all_numbers[i].case_list[j]
@@ -1568,7 +1415,7 @@ attachment:
     - "record_62": ${all_numbers[i+62].name.first}
     - "record_63": ${all_numbers[i+63].name.first}
     - "record_64": ${all_numbers[i+64].name.first}
-    - "more_numbers": ${True if all_numbers.number_gathered() > (i+64) else False}
+    - "more_numbers": ${True if all_numbers.number_gathered() > (i+65) else False}
 ---
 generic object: Thing
 attachment:
@@ -1663,6 +1510,81 @@ subquestion: |
 review:
   - note: |
       <h4>Your records</h4>
+  - label: Edit
+    fields:
+      - filing_location.trial_court_index
+      - recompute:
+        - filing_location.county
+    button: |
+      **Which county are you filing your request in?**
+      ${end_in_county(filing_location.county)}
+  - Edit: ir_number_check
+    button: |
+      % if ir_number_check:
+      **IR number:**
+      ${ir_number}
+      % else:
+      **Do you have an IR number?**
+      No
+      % endif
+    show if: filing_location.trial_court_index == -1
+  - Edit: arrests.revisit
+    button: |
+      **Records: (Edit to review, change details, or add more)**
+
+      % for my_var in arrests:
+        1. Arrest date: ${ my_var.date}
+      % endfor
+  - note: |
+      <h4>Your records</h4>
+  - Edit: users[0].name.first
+    button: |
+      **Filing details:**
+      ${ users[0].name_full() }
+  - Edit: users[0].has_other_names
+    button: |
+      **Do you have any other names that were used in your cases or arrests?**
+      ${word(yesno(users[0].has_other_names))}
+      % if users[0].has_other_names:
+      [NEWLINE][NEWLINE]**Other names:** ${other_user_names }
+      % endif      
+  - Edit: users[0].birthdate
+    button: |
+      **When were you born?**
+      ${ users[0].birthdate }
+  - Edit: users[0].address.address
+    button: |
+      **Your address:**[NEWLINE]
+      ${ users[0].address.on_one_line(bare=True) }
+  - Edit: users[0].phone_number
+    button: |
+      **Your phone number:**
+      % if users[0].phone_number == "":
+      None entered
+      % else:
+      ${ phone_number_formatted(users[0].phone_number) }
+      % endif
+  - Edit: users[0].has_email_address
+    button: |
+      **Do you have an email address?**
+      ${ word(yesno(users[0].has_email_address)) }
+  - Edit: users[0].email
+    button: |
+      **Your email:**
+      ${ users[0].email }
+    show if: users[0].has_email_address
+  - Edit: states_attorney_address.address
+    button: |
+      **${end_in_county(filing_location.county)} State's Attorney's address:**
+      % if states_attorney_address.line_one(bare=True) == "":
+      I don't know
+      % else:
+      ${states_attorney_address.on_one_line(bare=True)}
+      % endif
+  - Edit: e_signature
+    button: |
+      **Do you want to add your e-signature to your forms?**
+      ${ word(yesno(e_signature)) }
 ---
 id: records review screen
 section: Your records
@@ -1682,6 +1604,10 @@ subquestion: |
   
   Edit your answers below.
 review:
+  - Edit: users[0].birthdate
+    button: |
+      **When were you born?**
+      ${ users[0].birthdate }
   - label: Edit
     fields:
       - filing_location.trial_court_index
@@ -1779,7 +1705,7 @@ review:
       ${x.date}
   - Edit: x.after_arrest
     button: |
-      **What happened as a result of the arrest?**
+      **What happened after the arrest?**
 
       % if x.after_arrest == "no_charge":
       * I was **released** without being charged in court.
@@ -1788,7 +1714,7 @@ review:
       % elif x.after_arrest == "successful_supervision":
       * I was given **supervision**, which the court said was **completed successfully**.: 
       % elif x.after_arrest == "failed_supervision":
-      *  I was given **supervision**, which the court said was **not** completed successfully.
+      * I was given **supervision**, which the court said was **not** completed successfully.
       % else:
       * I went to court (saw a judge).
       % endif
@@ -1798,7 +1724,7 @@ review:
 
       % if x.at_court == "dismissed":
       * The case was thrown out (dismissed).
-      % elif x.at_court == "delinquent":
+      % elif x.at_court == "not_delinquent":
       * I was found not delinquent (not guilty).
       % else:
       * I was found guilty.
@@ -1812,9 +1738,9 @@ review:
       % if x.found_guilty == "traffic":
       * A traffic offense
       % elif x.found_guilty == "murder":
-      * First-dgree murder or a felony sex offense
+      * First-degree murder or a felony sex offense
       % elif x.found_guilty == "felony_or_a":
-      * A felony or class A misdemeanor
+      * A felony or Class A misdemeanor
       % elif x.found_guilty == "b_or_c":
       * A Class B or Class C misdemeanor
       % else:
@@ -1862,9 +1788,9 @@ review:
       % elif x.outcome == "DA":
       * "**DA** - Dismissal or Acquittal, Finding of No Probable Cause (FNPC), Found Not Guilty (FNG), Nolle Prosequi, Non-Suit, Stricken Off with Leave to Reinstate (SOL)"
       % elif x.outcome == "S":
-      * "**S** - Court Supervision, Completed successfully"
+      * "**S** - Court Supervision, completed successfully"
       % elif x.outcome == "QP":
-      * "**QP** - First Offender Drug Probation or Qualified Probation, Completed successfully"
+      * "**QP** - First Offender Drug Probation or Qualified Probation, completed successfully"
       % elif x.outcome == "FI":
       * "**FI** - Found Factually Innocent"
       % elif x.outcome == "RV":
@@ -1877,7 +1803,11 @@ review:
   - Edit: x.case_number
     button: |
       **Case number:**
+      % if x.case_number == "":
+      None entered
+      % else:
       ${x.case_number}
+      % endif
   - Edit: x.enforcement_number
     button: |
       **Law enforcement number:**
@@ -1944,7 +1874,7 @@ review:
     show if: users[0].has_email_address
   - Edit: states_attorney_address.address
     button: |
-      **${end_in_county(filing_location.county)}'s state's attorney's address:**
+      **${end_in_county(filing_location.county)} State's Attorney's address:**
       % if states_attorney_address.line_one(bare=True) == "":
       I don't know
       % else:
