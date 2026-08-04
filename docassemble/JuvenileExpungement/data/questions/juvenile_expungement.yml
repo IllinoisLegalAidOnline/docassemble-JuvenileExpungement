@@ -12,6 +12,7 @@ include:
 ---
 objects:
   - users: ALPeopleList.using(there_are_any=True)
+  - order_recipient: ALIndividual
   - arrests: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True)
   - all_numbers: DAList.using(object_type=Thing, there_are_any=False, there_is_another=False)
   - agencies: ALPeopleList.using(there_are_any=False, there_is_another=False)
@@ -25,6 +26,10 @@ objects:
   - cook_preview: DAStaticFile.using(filename="cook_county_and_chicago_examples.pdf")
   - il_preview: DAStaticFile.using(filename="illinois_not_cook_examples.pdf")
   - qualified_arrests: DAList.using(object_type=Thing, complete_attribute=['complete'], there_are_any=True, there_is_another=False)
+  - expungement_outcomes: DAList.using(there_are_any=True)
+---
+modules:
+  - .is_eligible
 ---
 code: |
   al_form_type = 'starts_case'
@@ -38,6 +43,7 @@ code: |
 sections:
   - section_intro: Start
   - section_records: Your records
+  - section_user: About you
   - section_filing: Filing details
   - section_download: Download
 ---
@@ -65,6 +71,7 @@ code: |
   if filing_location.county == "Cook":
     ir_number_check
   arrests_intro
+  build_expungement_outcomes()
   set_progress(40)
   arrests.gather()
 
@@ -73,12 +80,18 @@ code: |
     no_cases_kickout
   
   set_progress(70)
-  nav.set_section('section_filing')
+  nav.set_section('section_user')
   users[0].name.first
   users[0].has_other_names
   users[0].address.address
   users[0].has_email_address
+  
   set_progress(90)
+  nav.set_section('section_filing')
+  if add_order_recipient:
+    order_recipient.name.first
+    order_recipient.address.address
+    order_recipient.phone_number
   change_address
   states_attorney_address.address
   e_signature
@@ -104,6 +117,8 @@ code: |
       elif arrests[i].found_guilty == "felony_or_a":
         if arrests[i].must_register:
           arrests[i].cannot_expunge_registry
+        elif not arrests[i].has_ended:
+          arrests[i].cannot_expunge_open
         elif arrests[i].case_end_date > today().minus(years=2):
           arrests[i].cannot_expunge_recent
   elif arrests[i].after_arrest == "successful_supervision" or arrests[i].after_arrest == "failed_supervision":
@@ -115,7 +130,8 @@ code: |
 
     arrests[i].agency_code_block  
     arrests[i].outcome
-    arrests[i].case_number
+    if arrests[i].after_arrest != "no_charge":
+      arrests[i].case_number
     arrests[i].enforcement_number  
 
   arrests[i].complete = True
@@ -150,17 +166,6 @@ code: |
         if is_eligible(arrest):
           return True
     return False
----
-code: |
-  def is_eligible(arrest):
-    if arrest.after_arrest == "court" and arrest.at_court == "other":
-      if arrest.found_guilty == "other" or arrest.found_guilty == "traffic" or arrest.found_guilty == "murder":
-        return False
-      elif arrest.found_guilty == "felony_or_a" and (arrest.must_register or arrest.case_end_date > today().minus(years=2)):
-        return False
-    elif (arrest.after_arrest == "successful_supervision" or arrest.after_arrest == "failed_supervision") and arrest.must_register:
-      return False
-    return True
 ---
 code: |
   def which_subsection(arrest):
@@ -232,12 +237,15 @@ question: |
 subquestion: |
   Welcome to Illinois Legal Aid Online's **Expunge juvenile records** Easy Form.
 
-  This program will help you create forms to clear juvenile arrests and adjudications from your criminal record.
+  This program makes a *Request to Expunge Juvenile Records*. That form asks the court to clear juvenile arrests and **{adjudications}** from your  records. A juvenile record is like a criminal record, but it only includes cases from before you turned 18 years old.
   
   The forms you make with this program can only be used in Illinois.
   
   To learn more, read ILAO's article, [**Juvenile expungement basics**](https://www.illinoislegalaid.org/node/51836).
 field: sees_nav_bar
+terms:
+  - adjudications: |
+      An **adjudication** is a decision made by a court. If a judge gave you a sentence, that is an adjudication. If a judge found you not guilty or dismissed the case, that is also an adjudication.
 ---
 id: instructions
 continue button field: how_to_use
@@ -255,15 +263,18 @@ subquestion: |
     
   This information may be found on:
 
-  * Court dispositions,
-  * Your Illinois State Police RAP sheet, or
-  * Your Chicago Police RAP sheet.
+  * Court records (might be called a "docket sheet" or a "**{disposition}**") for all of your criminal cases,
+  * Your Illinois State Police Statewide Criminal History Transcript, and
+  * If you had arrests or charges in Chicago, your Chicago Police RAP Sheet (Record of Arrests and Prosecutions).
   
   Set aside 10 to 20 minutes to finish this program. You can log in and save your work to continue later. 
  
   ${ collapse_template(help_example) }  
 
   Click on **{green words}** to learn what they mean. Some pages have a question mark in a circle ${ fa_icon("question-circle", color_css="#0dcaf0" ) } that helps explain things.
+terms:
+  - "disposition": |
+      A **disposition** is the final judgment or outcome in a court case. There are no court dispositions for arrests or charges that did not lead to a court case
 ---
 template: help_example
 subject: |
@@ -276,24 +287,30 @@ continue button field: about_expungement
 question: | 
   About expungement 
 subquestion: | 
-  Some juvenile arrests and court records can be expunged. To **expunge** means to erase the police and court records of the case. 
+  Some juvenile arrests and court records can be expunged. **Expungement** erases arrests, dismissed charges, court supervisions, and qualified probations that were completed successfully from your criminal record so it is like they never happened.
 
-  This program will create a *Request to Expunge Juvenile Records*. This form will list your eligible juvenile arrests and court records. You can only include court records from one county in the request. If you need to expunge records in more than one county, you will need to run this program again to make more forms.
+  This program helps you fill out a *Request to Expunge Juvenile Records*. On it, you will list your eligible juvenile arrests and **{adjudications}**. **Note:** You can only include court records from **one county** in the request. If you need to expunge records in more than one county, you will need to run this program again to make more forms.
 
-  If you have arrests involving cannabis, you may want to read ILAO's article, [**Cannabis legalization and expungement basics**](https://www.illinoislegalaid.org/legal-information/cannabis-legalization-and-expungement-basics). 
+  This program can only be used for arrests from before you turned 18 years old. ILAO has other Easy Forms that can be used for other arrests:  
+
+  * If you have arrests from after you turned 18 years old, you can make a request to expunge them using ILAO's [**Expunge or seal criminal records Easy Form**](https://www.illinoislegalaid.org/node/30976).
+  * If you have arrests involving cannabis, you can make a request to expunge them using ILAO's [**Cannabis expungement Easy Form**](https://www.illinoislegalaid.org/node/173941).
 
   To learn more about expungement, read ILAO's article [**starting a request to expunge or seal a juvenile arrest record**](https://www.illinoislegalaid.org/legal-information/starting-request-expunge-or-seal-juvenile-arrest-record).
+terms:
+  - adjudications: |
+      An **adjudication** is a decision made by a court. If a judge gave you a sentence, that is an adjudication. If a judge found you not guilty or dismissed the case, that is also an adjudication.
 ---
 id: immigration status info
 continue button field: immigration_status_info
 question: |
   Immigration status
 subquestion: |
-  Expunging a juvenile record does not erase it for immigration purposes. US immigration authorities can still see sealed or expunged records, and applicants must disclose all arrests, including juvenile offenses.
+  Expunging a juvenile record does not erase it for immigration purposes. US immigration authorities can still see expunged records. Applicants may need to disclose criminal records to immigration, including juvenile offenses.
 
-  **Important:** Filing to expunge records could seriously affect your immigration status. Speak to an immigration lawyer before filing to expunge or seal any criminal or juvenile records. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  **Important:** Expunging records may make it more difficult for someone to provide records to immigration. Speak to an immigration lawyer before filing to expunge or seal any criminal or juvenile records. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
 
-  To learn more, read ILAO's article, [**Should I clear my criminal record for immigration purposes?**](https://www.illinoislegalaid.org/node/51801)
+  To learn more, read ILAO's article, [**Should someone clear their criminal record for immigration purposes?**](https://www.illinoislegalaid.org/node/51801)
 ---
 id: read or skip information
 question: |
@@ -315,29 +332,25 @@ continue button field: expungement_info
 question: |
   Clearing your criminal record in Illinois
 subquestion: |
-  When you are arrested or charged with an offense, a criminal record is created, even if you are not found guilty. Juvenile records can be read by law enforcement agencies, some employers, and some government agencies. To have your records erased or hidden, you must file a *${ form_name }* with the court and have a judge approve your *Request*.
+  When you are arrested or charged with an offense, a juvenile record is created, even if you are not found guilty. To have your records erased, you must file a *${ form_name }* with the court and have a judge approve your *Request*.
 
-  There are three ways to clear your criminal record:
+  Juvenile records are automatically sealed, which means they are are not open to the public. However, law enforcement agencies, some employers, and some government agencies can still see them.
 
-  * **Expungement**: Erases arrests, dismissed charges, court supervisions, and qualified probations that were completed successfully from your criminal record so it is like they never happened.
-  * **Sealing**: Juvenile records are automatically sealed. However, law enforcement agencies can still see sealed records. Employers required by law to conduct background checks can see sealed felony convictions. They cannot see sealed misdemeanor convictions or cases not resulting in convictions unless the employer is a law enforcement agency.
-  * **Executive Clemency**: If you do not qualify for expungement, you can apply for a pardon from the Governor forgiving you for your criminal convictions. A pardon does not erase or hide your conviction on its own. If you get a pardon authorizing expungement, you can then apply to have your record expunged. To learn more about getting a pardon, read ILAO's article about [**executive clemency**](https://www.illinoislegalaid.org/node/37761).
+  There are two ways to clear your juvenile record:
+
+  * **Expungement**: Erases arrests, dismissed charges, court supervisions, and qualified probations that were completed successfully from your juvenile record so it is like they never happened.
+  * **Executive Clemency**: If you do not qualify for expungement, you can [**apply for a pardon from the Governor**](https://prb.illinois.gov/prbexclemex.html) forgiving you for your criminal convictions. A pardon does not erase or hide your conviction on its own. If you get a pardon authorizing expungement, you can then apply to have your record expunged. To learn more about getting a pardon, read ILAO's article about [**executive clemency**](https://www.illinoislegalaid.org/node/37761).
 ---
 id: more expungement info
 continue button field: more_expungement_info
 question: |
-  Obstacles to clearing your criminal records
+  Objections to expungement
 subquestion: |
-  You might not be eligible for getting your criminal records expunged if:
+  Police departments and prosecutors for your criminal cases get a chance to object to your *Request to Expunge Juvenile Records*.
+
+  The police departments and prosecutors have 45 days from the day they receive your *Request* to file a written objection with the court. If they **object**, it means they do not want your record to be expunged. If the agencies do not object during the 45 days, they cannot object at a later time.
   
-  * You have any pending criminal charges,
-  * You have not completed your sentence, including parole, probation, or court supervision, or
-  * Your records for some offenses are not eligible for expungement.
-
-  Also, police departments and prosecutors for your criminal cases get a chance to object to your *Request to Expunge Juvenile Records*.
-
-  * The police departments and prosecutors have 45 days from the day they receive your *Request* to file a written objection with the court. If they **object**, it means they do not want your record to be expunged or sealed. If the agencies do not object during the 45 days, they cannot object at a later time.
-  * An **objection** does not mean the court is denying your *Request*. The court will consider the objection when deciding if your criminal record will be expunged.
+  The court may still expunge your records even if there is an **objection**. The court will consider the objection when deciding whether to expunge your records.
 ---
 id: records info
 continue button field: records_info
@@ -400,7 +413,7 @@ content: |
   * From your local law enforcement agency:[NEWLINE]
     Every law enforcement agency is allowed to give you this information. Check with your local law enforcement agency to find out costs and times for fingerprinting.
 
-  * From any licensed LiveScan vendor to get your transcript using your fingerprint. Find a Fingerprint Vendor at the [Illinois Department of Financial and Professional Regulation](https://idfprapps.illinois.gov/licenselookup/fingerprintlist.asp) website.
+  * From any licensed LiveScan vendor to get your transcript using your fingerprint. Find a Fingerprint Vendor at the [**Illinois Department of Financial and Professional Regulation :external-link:**](https://idfprapps.illinois.gov/licenselookup/fingerprintlist.asp) website.
 ---
 template: cpd_records_help
 subject: |
@@ -429,10 +442,11 @@ subquestion: |
 
   An arrest can have a juvenile record even if you never went to court or saw a judge. If you are unsure if you were arrested, you can contact the law enforcement agency that arrested you.
 
+  If you did go to court or saw a judge for an arrest, there is an adjudication for that arrest. An adjudication is a decision made by the court. If a judge gave you a sentence, that is an adjudication. If a judge found you not guilty or dismissed the case, that is also an adjudication.
+
   Juvenile records are automatically sealed. The public cannot see them without a court order. However, some employers and government agencies still have access unless the records are expunged.
 
-  If you were arrested when you were 18 or older, you may be able to expunge your adult records using ILAO's [**Criminal record expungement or sealing request Easy Form**](https://www.illinoislegalaid.org/legal-information/criminal-record-expungement-or-sealing-request).
-
+  If you were arrested when you were 18 or older, you may be able to clear your adult records using ILAO's [**Expunge or seal criminal records Easy Form**](https://www.illinoislegalaid.org/legal-information/criminal-record-expungement-or-sealing-request).
 ---
 template: seventeen_years
 subject: |
@@ -462,7 +476,7 @@ fields:
   - Other names (separate by commas): other_user_names
     input type: area
     rows: 2
-    max: 100
+    maxlength: 100
     show if:
       variable: users[0].has_other_names
       is: True
@@ -484,7 +498,7 @@ subquestion: |
   
   ${collapse_template(multiple_counties)}
 fields:
-  - no label: filing_location.trial_court_index
+  - County: filing_location.trial_court_index
     code: |
       ilao_court_county_lookup(court_list)
 validation code: |
@@ -536,11 +550,13 @@ subquestion: |
 fields:
   - Date: arrests[i].date
     datatype: date
-    max: ${users[0].birthdate.plus(years=18)}
+    max: |
+      % if users[0].birthdate.plus(years=18) < today():
+      ${users[0].birthdate.plus(years=18)}
+      % else:
+      ${today()}
+      % endif
     min: ${users[0].birthdate}
-    validation messages:
-      max: |
-        Only arrests from when you were under 18 years of age are juvenile records.
 validation code: |
   arrests[i].name = arrests[i].date
 ---
@@ -551,10 +567,18 @@ fields:
   - no label: arrests[i].after_arrest
     input type: radio
     choices:
-      - I was released without being charged in court.: no_charge
+      - I was arrested as a juvenile but never appeared before a judge.: no_charge
+        help: |
+          You might see the words “station adjustment” or “released without charging” on your records. This also may mean that the State’s Attorney did not file formal charges against you or that your case was diverted out of court.
       - I was given a diversion program at the police station or at the probation department.: diversion
-      - I was given supervision, which the court said was completed successfully.: successful_supervision
-      - I was given supervision, which the court said was **not** completed successfully.: failed_supervision
+        help: |
+          Diversion programs are an alternative to criminal prosecution. Diversion programs available in Illinois include the Drug Deferred Prosecution Program, the Mental Health Treatment Court, and the Restorative Justice Community Court, among others.
+      - I was sentenced to supervision and **completed** it successfully.: successful_supervision
+        help: |
+          Supervision is when the court puts off finding you guilty and gives you a period of time when you must follow certain conditions, such as doing community service or not breaking any laws.
+      - I was sentenced to supervision, but I did **not** complete it successfully.: failed_supervision
+        help: |
+          Supervision is when the court puts off finding you guilty and gives you a period of time when you must follow certain conditions, such as doing community service or not breaking any laws.
       - I went to court (saw a judge).: court
 ---
 id: at court
@@ -563,12 +587,16 @@ question: |
 field: arrests[i].at_court
 choices:
   - The case was thrown out (dismissed).: dismissed
-  - I was found not delinquent (not guilty).: not_delinquent
+  - I was adjudicated not delinquent (found not guilty).: not_delinquent
+    help: |
+      For example, you were adjudicated not delinquent or the case was dismissed (sometimes marked as Nolle Prosequi (NP) or Stricken Off with Leave to Reinstate (SOL)).
   - Something else happened: other
 ---
 id: found guilty
 question: |
   Were you found guilty of any of the following?
+subquestion: |
+  If you were **adjudicated delinquent** of an offense, that means you were found guilty of it.
 field: arrests[i].found_guilty
 choices:
   - A traffic offense: traffic
@@ -576,15 +604,15 @@ choices:
   - A felony or Class A misdemeanor: felony_or_a
   - A Class B or Class C misdemeanor: b_or_c
   - A petty offense: petty
-  - No, I was not found guilty of any of these.: other
+  - No, I was not found guilty of any of these.: other                                            
 ---
 id: arrest registry
 question: |
   Did the court require you to register on the Juvenile Sex Offender Registry?
 subquestion: |
-  If you were found guilty of a sex offense, the court should have told you that you must register as a Juvenile Sex Offender.
+  If you were adjudicated delinquent (found guilty) of a sex offense, the court should have told you that you must register as a Juvenile Sex Offender.
 
-  To learn more about the Juvenile Sex Offender Registry, read ILAO's article, [**Can a sex offender be removed from the registry?**](https://www.illinoislegalaid.org/legal-information/appealing-my-registration-sex-offender).
+  To learn more about the Juvenile Sex Offender Registry, read ILAO's article, [**Can a sex offender be removed from the registry?**](https://www.illinoislegalaid.org/legal-information/appealing-my-registration-sex-offender)
 fields:
   - no label: arrests[i].must_register
     datatype: yesnoradio
@@ -600,29 +628,50 @@ subquestion: |
 ---
 id: juvenile case end date
 question:  |
-  When did this case's sentence end?
+  Has your sentence for this case ended?
 subquestion: |
-  This includes juvenile probation, serving time in the Department of Juvenile Justice, and parole (IDJJ Aftercare).
-
-  You should enter the date when the case ended. If you were sentenced or put on probation, enter the last day of your sentence or probation.
+  The sentence includes any juvenile probation, time in the Department of Juvenile Justice, or parole (IDJJ Aftercare).
 
   **Note:** If a judge adjudicated you delinquent (found you guilty) of a Class A misdemeanor or a felony, you must wait at least 2 years after your court case ended, including the end of any sentence.
 fields:
-  - Date: arrests[i].case_end_date
+  - no label: arrests[i].has_ended
+    datatype: yesnoradio
+  - When did the case end?: arrests[i].case_end_date
     datatype: date
+    help: |
+      If you were sentenced or put on probation, enter the last day of your sentence or probation.
     max: ${today()}
+    min: ${arrests[i].date}
+    show if: arrests[i].has_ended
+---
+id: arrest cannot expunge open
+continue button field: arrests[i].cannot_expunge_open
+question: |
+  Records from the ${arrests[i].date} arrest not eligible for expungement
+subquestion: |
+  You cannot use this program to expunge an offense if you have not finished the sentence for the offense.
+
+  You can talk with a lawyer to discuss your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
+  
+  % if i == 0:
+  Click **Back** if you made a mistake. Click **Next** if you would like to expunge a different arrest.
+  % elif i == 1:
+  Click **Back** if you made a mistake. Click **Next** if you would like to expunge another adjudication or expunge the arrest you have already entered.
+  % else:
+  Click **Back** if you made a mistake. Click **Next** if you would like to expunge another adjudication or expunge the arrests you have already entered.
+  % endif
 ---
 id: arrest cannot expunge offense type
 continue button field: arrests[i].cannot_expunge_offense_type
 question: |
-  The ${arrests[i].date} arrest cannot be expunged with this program.
+  Records from the ${arrests[i].date} arrest not eligible for expungement
 subquestion: |
   % if arrests[i].found_guilty == "traffic":
   You cannot use this program to expunge a traffic offense.
   % elif arrests[i].found_guilty == "murder":
   You cannot use this program to expunge a first-degree murder or a felony sex offense.
   % else:
-  You cannot use this program to expunge a case where you were found guilty of something other than a felony, misdemeanor, or petty offense.
+  You cannot use this program to expunge a case where you were adjudicated delinquent (found guilty) of something other than a felony, misdemeanor, or petty offense.
   % endif
   
   You can talk with a lawyer to discuss your options. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
@@ -672,13 +721,11 @@ subquestion: |
 ---
 id: charge offense
 question: |
-  What were you arrested for on ${arrests[i].date}?
+  What was the charge for the ${arrests[i].date} arrest?
 subquestion: |  
-  **Note**: If you were found guilty of something else due to this arrest, list that charge here.
-
-  If there is more than one offense or charge, separate each one by a semicolon.
+  This is the name of the offense you were charged with, such as "retail theft" or "cannabis possession.
 fields:
-  - Offense: arrests[i].charge
+  - Charge: arrests[i].charge
     input type: area
     rows: 2
     maxlength: 50
@@ -687,9 +734,9 @@ fields:
 ---
 id: review agency info
 question: |
-  What is the name and address of the agency that arrested you?
+  What is the name and address of the agency that arrested you on ${arrests[i].date}?
 subquestion: |
-  This is often a police department.
+  This is usually a police department.
 
   ${collapse_template(where_to_find_records_help)}
 fields:
@@ -704,11 +751,11 @@ fields:
     code: |
       states_list()
     default: IL
-  - ZIP: arrests[i].review_agencies[j].address.zip
+  - ZIP code: arrests[i].review_agencies[j].address.zip
 ---
 id: agency info
 question: |
-  What is the name and address of the agency that arrested you?
+  What is the name and address of the agency that arrested you on ${arrests[i].date}?
 subquestion: |
   This is often a police department.
 
@@ -725,14 +772,14 @@ fields:
     code: |
       states_list()
     default: IL   
-  - ZIP: arrests[i].agency.address.zip
+  - ZIP code: arrests[i].agency.address.zip
 ---
 only sets: arrests[i].agency_selection
 id: select or add agency
 question: |
   Which agency arrested you on ${ arrests[i].date }?
 subquestion: |
-  This is often a police department.
+  This is usually a police department.
 
    ${collapse_template(where_to_find_records_help)}
 fields:
@@ -775,7 +822,7 @@ id: law enforcement record number
 question: |
   What is the law enforcement record number for the ${arrests[i].date} arrest?
 subquestion: |
-  **Note:** It is important to add the law enforcement record number so the arrest records can be expunged. The number could be a Document Control Number (DCN) or a Central Booking number (CB). If you can't find the number, you can use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find a lawyer near you.
+  **Note:** It is important to add the law enforcement record number so the arrest records can be expunged. You might see the letters **DCN** (Document Control Number) or **CB** (Central Booking number) next to this number on your RAP sheet. If you can't find the number, you can use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find a lawyer near you.
   
   If there is no law enforcement record number, you can leave this blank.
 
@@ -798,18 +845,71 @@ content: |
 id: arrest outcome
 question: |
   What was the outcome of the ${arrests[i].date} arrest?
+subquestion: |
+  **Note:** You may have entered this already. The outcome code is used on a different part of the forms.
+
+  ${collapse_template(expungement_outcomes_help)}
 fields:
   - Outcome: arrests[i].outcome
     datatype: radio
     choices:
-      - "**RWC** - Released Without Charge": RWC
-      - "**DA** - Dismissal or Acquittal, Finding of No Probable Cause (FNPC), Found Not Guilty (FNG), Nolle Prosequi, Non-Suit, Stricken Off with Leave to Reinstate (SOL)": DA
-      - "**S** - Court Supervision, Completed Successfully": S
-      - "**QP** - First Offender Drug Probation or Qualified Probation, Completed Successfully": QP
-      - "**FI** - Found Factually Innocent": FI
-      - "**RV** - Guilty / Conviction Reversed or Vacated": RV
-      - "**P** - Guilty / Conviction with a Pardon from the Governor": P
-      - "**CE** - Guilty / Conviction with a Certificate of Eligibility for Expungement from Prisoner Review Board": CE
+      - "**A** - **Arrest** without court case filed/station or probation adjustment/pre-petition diversion": A
+      - "**ND** - Adjudicated **not delinquent** (found not guilty)": ND
+      - "**S** - Given **supervision** and the court decided it was completed **successfully**": S
+      - "**BC** - Adjudicated delinquent for (guilty of) **class B or C misdemeanor** (includes supervision not terminated successfully)": BC
+      - "**FA** - Adjudicated delinquent for (guilty of) **felony or class A misdemeanor** (includes supervision not terminated successfully)": FA
+      - "**D** - Case **dismissed** (thrown out)": D
+---
+template: expungement_outcomes_help
+subject: |
+  **More information about outcomes**
+content: |  
+  ${ expungement_table }
+---
+table: expungement_table
+rows: expungement_outcomes
+columns:
+  - Outcome Abbreviation: row_item['abbreviation']
+  - Disposition/Outcome: row_item['disposition']
+  - More Information: row_item['more_information']
+---
+code: |
+  def build_expungement_outcomes():
+    expungement_outcomes.auto_gather = False
+    expungement_outcomes.clear()
+
+    expungement_outcomes.append({
+      'abbreviation': 'A',
+      'disposition': 'Arrest without court case filed/station or probation adjustment/pre-petition diversion',
+      'more_information': 'You were arrested but not charged with an offense or brought to court, or you were assigned a diversion program.'
+  })
+    expungement_outcomes.append({
+      'abbreviation': 'ND',
+      'disposition': 'Adjudicated not delinquent (found not guilty)',
+      'more_information': 'The court decided you were not guilty of the offense you were charged with.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'S',
+      'disposition': 'Given supervision and the court decided it was completed successfully',
+      'more_information': 'The court kept your case open for a set period of time. You followed the conditions during that time and the court dismissed the criminal charges against you.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'BC',
+      'disposition': 'Adjudicated delinquent for (guilty of) class B or C misdemeanor (includes supervision not terminated successfully)',
+      'more_information': 'You were adjudicated delinquent (found guilty) of a class B or C misdemeanor. A class B misdemeanor is a lesser crime punishable by a fine or confinement in county jail for up to six months. A class C misdemeanor is punishable by a fine or confinement in county jail for up to 30 days.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'FA',
+      'disposition': 'Adjudicated delinquent for (guilty of) felony or class A misdemeanor (includes supervision not terminated successfully)',
+      'more_information': 'You were adjudicated delinquent (found guilty) of a felony or a class A misdemeanor. A felony is a serious crime that is punishable by more than one year in prison. A class A misdemanor is a lesser crime punishable by a fine or confinement up to one year in county jail.'
+    })
+    expungement_outcomes.append({
+      'abbreviation': 'D',
+      'disposition': 'Case dismissed (thrown out)',
+      'more_information': 'The state stopped prosecuting your case and the court dismissed the case.'
+    })
+    expungement_outcomes.gathered = True
+    return
 ---
 id: arrests there is another
 question: |
@@ -819,10 +919,14 @@ subquestion: |
   So far you have told us about the arrests that took place on:
 
   % for arrest in arrests:
+  % if is_eligible(arrest):
   * ${arrest.date}
+  % else:
+  * ${arrest.date} (not eligible for expungement)
+  % endif
   % endfor
   % else:
-  So far you have told us about the arrest that took place on ${arrests[0].date}
+  So far you have told us about the arrest that took place on ${arrests[0].date}.
   % endif
 fields:
   - no label: arrests.there_is_another
@@ -908,17 +1012,27 @@ content: |
 id: change address information
 continue button field: change_address
 question: |
+  % if add_order_recipient:
+  About moving and changing email addresses
+  % else:
   About moving and changing your email address
+  % endif
 subquestion: |
+  % if add_order_recipient:
+  If you or ${order_recipient.name_full()} move or change your email address before a judge hears your request, you will have to tell the court clerk.
+
+  This program will include a blank *Change of Address* form. If you or ${order_recipient.name_full()} move or change your email address, use the *Change of Address* form to tell the court the new mailing address or email address.
+  % else:
   If you move or change your email address before a judge hears your request, you will have to tell the court clerk.
 
   This program will include a blank *Change of Address* form. If you move or change your email address, use the *Change of Address* form to tell the court your new mailing address or email address.
+  % endif
 ---
 id: states attorney address
 question: |
   What is the address of the ${end_in_county(filing_location.county)} State's Attorney's office?
 subquestion: | 
-  You should be able to find this address on the Internet. You can click [**Illinois ${end_in_county(filing_location.county)} State's Attorney address**](https://www.google.com/search?q=${filing_location.county}+county+illinois+state%27s+attorney%27s+office) to search for it using Google.
+  You should be able to find this address on the Internet. You can click [**Illinois ${end_in_county(filing_location.county)} State's Attorney address :external-link:**](https://www.google.com/search?q=${filing_location.county}+county+illinois+state%27s+attorney%27s+office) to search for it using Google.
   
   If you do not know this now, you can add it to your forms later. You will need to add the State's Attorney's address before you file your forms.
 fields:
@@ -934,6 +1048,60 @@ fields:
     code: |
       states_list() 
   - ZIP code: states_attorney_address.zip
+    required: False
+---
+id: add order recipient
+question: |
+  Do you want the court to send the order to another person or address? 
+subquestion: |
+  You entered the following contact information for yourself.
+
+  Address: ${ users[0].address.on_one_line(bare=True)}[NEWLINE]
+  Phone: ${ phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else "None entered" }[NEWLINE]
+  Email: ${ users[0].email if users[0].has_email_address else "None entered" }
+  
+  The court will send the order to you at this address unless you select **Yes**. You can enter another person and contact information on the next screens.
+fields:
+  - "Send order to another person or address?": add_order_recipient
+    datatype: yesnoradio
+---
+id: order recipient name
+sets:
+  - order_recipient.name.first
+question:  |
+  Who do you want the court to send the order to?
+fields:
+  - code: |
+      order_recipient.name_fields()
+---
+id: order recipient address
+question: |
+  At what address should the court send the order to ${order_recipient.name_full() }?
+subquestion: |
+  **This address will appear on your court papers.**
+fields:
+  - Street address: order_recipient.address.address
+    address autocomplete: True
+  - Address line 2: order_recipient.address.unit
+    required: False
+  - City: order_recipient.address.city
+  - State: order_recipient.address.state
+    code: |
+      states_list()
+    default: IL      
+  - ZIP code: order_recipient.address.zip
+---
+id: order recipient contact information
+question: |
+  What is ${order_recipient.name_full() }'s contact information?
+subquestion: |
+  **This information will appear on your court forms.**
+fields:  
+  - Phone number: order_recipient.phone_number
+    datatype: al_international_phone
+    required: False
+  - Email address: order_recipient.email    
+    datatype: email
     required: False
 ---
 id: e-signature
@@ -964,13 +1132,13 @@ continue button field: next_steps
 question: |
   Next steps
 subquestion: |
-  After you download your forms, you must file them with the court. This program **does not file** your forms for you. To learn about the filing process, see ILAO's [**Court process for expungement or sealing FAQ**](https://www.illinoislegalaid.org/node/185996).
+  After you download your forms, you must file them with the Circuit Clerk in the county where you were arrested or charged. This program **does not file** your forms for you. To learn about the filing process, see ILAO's [**Court process for expungement or sealing FAQ**](https://www.illinoislegalaid.org/node/185996).
 
-  There may be fees to get records from police departments, certified dispositions, or court filing fees. There also may be an Illinois State Police processing fee to process your expungement court order. The Circuit Clerk collects this fee with the filing fee.
+  Before you file your forms, contact the Circuit Clerk's office and ask how the county files expungement requests. You can find your Circuit Clerk's phone number on the [**Illinois Courts website :external-link:**](https://ilcourts.info/clerks).
 
-  **Note:** If you cannot afford the Circuit Clerk filing fee or the Illinois State Police processing fee, you can ask the court to waive those fees. You can use ILAO's [**Fee waiver Easy Form**](https://www.illinoislegalaid.org/node/30831) to make forms to ask the court to file for free or at a reduced cost.
+  There is no fee to file a *${form_name} in Illinois. However, there may be fees to get records from police departments, certified dispositions, or documents. 
 
-  After you file the *${ form_name }* and get a court date, you may need to go to court for a court date in front of a judge. Some counties schedule a court date right away, but others will only schedule a court date if there is an objection to your *Request*.
+  After you file the *Request* and get a court date, you may need to go to court for a court date in front of a judge. Some counties schedule a court date right away, but others will only schedule a court date if a police department or prosecutor files an objection to your *Request*.
   
   Finally, the court will decide on your *Request*. To learn about what happens after the court makes its decision, read ILAO's [**After your expungement or sealing case is decided FAQ**](https://www.illinoislegalaid.org/node/186001).
   
@@ -1037,7 +1205,7 @@ objects:
   - instructions: ALDocument.using(title="Instructions", filename="instructions.pdf", has_addendum=False)
   - request: ALDocument.using(title="Request to Expunge Juvenile Records", filename="request.pdf", has_addendum=False)
   - order_denying_request: ALDocument.using(title="Order Denying Request (draft)", filename="order_denying_request.pdf", has_addendum=False)
-  - change_of_address: ALDocument.using(title="Change of Address (draft)", filename="change_of_address.pdf", has_addendum=False)
+  - change_of_address: ALDocument.using(title="Change of Address (blank)", filename="change_of_address.pdf", has_addendum=False)
   - notice: ALDocument.using(title="Notice of Filing", filename="notice_of_filing.pdf", has_addendum=False)
 ---
 objects:
@@ -1056,7 +1224,7 @@ objects:
   - all_numbers[i].case_list: ALDocument.using(title="Case List", filename="case_list.pdf", has_addendum=False)
 ---
 objects: 
-  - order_bundle: ALDocumentBundle.using(elements=[], title="Order to Expunge", filename="order.pdf", has_addendum=False)
+  - order_bundle: ALDocumentBundle.using(elements=[], title="Order to Expunge Juvenile Records (draft)", filename="order.pdf", has_addendum=False)
   - case_list_bundle: ALDocumentBundle.using(elements=[], title="Case List for Request", filename="case_list.pdf", has_addendum=False)
   - records_bundle: ALDocumentBundle.using(elements=[], title="Additional Records for Expungement", filename="records.pdf", has_addendum=False)
   - agencies_bundle: ALDocumentBundle.using(elements=[], title="Additional Arresting Agencies", filename="agencies.pdf", has_addendum=False)
@@ -1079,7 +1247,7 @@ objects:
   #- al_court_bundle: ALDocumentBundle.using(elements=[request_bundle, order_denying_request], filename="expungement_forms.pdf", title="All forms")
 ---
 objects:
-  - request_bundle: ALDocumentBundle.using(elements=[request, records_bundle, agencies_bundle], filename="request.pdf", title="Request to Expunge Juvenile Records")
+  - request_bundle: ALDocumentBundle.using(elements=[request, records_bundle], filename="request.pdf", title="Request to Expunge Juvenile Records")
 ---
 attachment:
   variable name: instructions[i]
@@ -1109,16 +1277,16 @@ attachment:
     - "case_number_2": ${""}
     - "case_number_3": ${""}
     - "case_number_4": ${""}
-    - "arrest_1_number": ${qualified_arrests[0].case_number}
-    - "arrest_2_number": ${qualified_arrests[1].case_number}
-    - "arrest_3_number": ${qualified_arrests[2].case_number}
-    - "arrest_4_number": ${qualified_arrests[3].case_number}
-    - "arrest_5_number": ${qualified_arrests[4].case_number}
-    - "arrest_6_number": ${qualified_arrests[5].case_number}
-    - "arrest_7_number": ${qualified_arrests[6].case_number}
-    - "arrest_8_number": ${qualified_arrests[7].case_number}
-    - "arrest_9_number": ${qualified_arrests[8].case_number}
-    - "arrest_10_number": ${qualified_arrests[9].case_number}
+    - "arrest_1_number": ${qualified_arrests[0].case_number if qualified_arrests[0].after_arrest != "no_charge" else ""}
+    - "arrest_2_number": ${qualified_arrests[1].case_number if qualified_arrests[1].after_arrest != "no_charge" else ""}
+    - "arrest_3_number": ${qualified_arrests[2].case_number if qualified_arrests[2].after_arrest != "no_charge" else ""}
+    - "arrest_4_number": ${qualified_arrests[3].case_number if qualified_arrests[3].after_arrest != "no_charge" else ""}
+    - "arrest_5_number": ${qualified_arrests[4].case_number if qualified_arrests[4].after_arrest != "no_charge" else ""}
+    - "arrest_6_number": ${qualified_arrests[5].case_number if qualified_arrests[5].after_arrest != "no_charge" else ""}
+    - "arrest_7_number": ${qualified_arrests[6].case_number if qualified_arrests[6].after_arrest != "no_charge" else ""}
+    - "arrest_8_number": ${qualified_arrests[7].case_number if qualified_arrests[7].after_arrest != "no_charge" else ""}
+    - "arrest_9_number": ${qualified_arrests[8].case_number if qualified_arrests[8].after_arrest != "no_charge" else ""}
+    - "arrest_10_number": ${qualified_arrests[9].case_number if qualified_arrests[9].after_arrest != "no_charge" else ""}
     - "arrest_1_lern": ${qualified_arrests[0].enforcement_number}
     - "arrest_2_lern": ${qualified_arrests[1].enforcement_number}
     - "arrest_3_lern": ${qualified_arrests[2].enforcement_number}
@@ -1189,14 +1357,29 @@ attachment:
   fields:
     - "filing_county": ${ filing_location.county }
     - "user_name_1": ${users[0].name_full()}
-    - "user_name_2": ${users[0].name_full()}
+    - "user_name_2": ${ order_recipient.name_full() if add_order_recipient else users[0].name_full() }
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
     - "case_number": ${""}
-    - "user_phone": ${phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else ""}
-    - "user_email": ${users[0].email if users[0].has_email_address else ""}
-    - "user_address": ${users[0].address.on_one_line(bare=True)}
+    - "user_phone": |
+        % if add_order_recipient:
+        ${ phone_number_formatted(order_recipient.phone_number) }
+        % else:
+        ${ phone_number_formatted(users[0].phone_number) }
+        % endif
+    - "user_email": |
+        % if add_order_recipient:
+        ${ order_recipient.email }
+        % else:
+        ${ users[0].email if users[0].has_email_address else "" }
+        % endif
+    - "user_address": |
+        % if add_order_recipient:
+        ${ order_recipient.address.on_one_line(bare=True) }
+        % else:
+        ${ users[0].address.on_one_line(bare=True) }
+        % endif
     - "attorney_number": ${""}
 ---
 attachment:
@@ -1295,7 +1478,7 @@ code: |
   all_numbers.clear()
   numbers_index = 0
   for arrest in qualified_arrests:
-    if arrest.case_number != "":
+    if arrest.after_arrest != "no_charge" and arrest.case_number != "":
       all_numbers.appendObject(Individual)
       all_numbers[numbers_index].name.first = arrest.case_number
       numbers_index += 1
@@ -1316,24 +1499,39 @@ attachment:
   fields:
     - "filing_county": ${ filing_location.county }
     - "user_name_1": ${ users[0].name_full() }
-    - "user_name_2": ${ users[0].name_full() }
+    - "user_name_2": ${ order_recipient.name_full() if add_order_recipient else users[0].name_full() }
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") }
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
     - "case_number": ${""}
-    - "user_phone": ${phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else ""}
-    - "user_email": ${users[0].email if users[0].has_email_address else ""}
-    - "user_address": ${users[0].address.on_one_line(bare=True)}
-    - "arrest_1_number": ${x.case_number}
-    - "arrest_2_number": ${qualified_arrests[x.index_for_order+1].case_number}
-    - "arrest_3_number": ${qualified_arrests[x.index_for_order+2].case_number}
-    - "arrest_4_number": ${qualified_arrests[x.index_for_order+3].case_number}
-    - "arrest_5_number": ${qualified_arrests[x.index_for_order+4].case_number}
-    - "arrest_6_number": ${qualified_arrests[x.index_for_order+5].case_number}
-    - "arrest_7_number": ${qualified_arrests[x.index_for_order+6].case_number}
-    - "arrest_8_number": ${qualified_arrests[x.index_for_order+7].case_number}
-    - "arrest_9_number": ${qualified_arrests[x.index_for_order+8].case_number}
-    - "arrest_10_number": ${qualified_arrests[x.index_for_order+9].case_number}
+    - "user_phone": |
+        % if add_order_recipient:
+        ${ phone_number_formatted(order_recipient.phone_number) }
+        % else:
+        ${ phone_number_formatted(users[0].phone_number) }
+        % endif
+    - "user_email": |
+        % if add_order_recipient:
+        ${ order_recipient.email }
+        % else:
+        ${ users[0].email if users[0].has_email_address else "" }
+        % endif
+    - "user_address": |
+        % if add_order_recipient:
+        ${ order_recipient.address.on_one_line(bare=True) }
+        % else:
+        ${ users[0].address.on_one_line(bare=True) }
+        % endif
+    - "arrest_1_number": ${x.case_number if x.after_arrest != "no_charge" else ""}
+    - "arrest_2_number": ${qualified_arrests[x.index_for_order+1].case_number if qualified_arrests[x.index_for_order+1].after_arrest != "no_charge" else ""}
+    - "arrest_3_number": ${qualified_arrests[x.index_for_order+2].case_number if qualified_arrests[x.index_for_order+2].after_arrest != "no_charge" else ""}
+    - "arrest_4_number": ${qualified_arrests[x.index_for_order+3].case_number if qualified_arrests[x.index_for_order+3].after_arrest != "no_charge" else ""}
+    - "arrest_5_number": ${qualified_arrests[x.index_for_order+4].case_number if qualified_arrests[x.index_for_order+4].after_arrest != "no_charge" else ""}
+    - "arrest_6_number": ${qualified_arrests[x.index_for_order+5].case_number if qualified_arrests[x.index_for_order+5].after_arrest != "no_charge" else ""}
+    - "arrest_7_number": ${qualified_arrests[x.index_for_order+6].case_number if qualified_arrests[x.index_for_order+6].after_arrest != "no_charge" else ""}
+    - "arrest_8_number": ${qualified_arrests[x.index_for_order+7].case_number if qualified_arrests[x.index_for_order+7].after_arrest != "no_charge" else ""}
+    - "arrest_9_number": ${qualified_arrests[x.index_for_order+8].case_number if qualified_arrests[x.index_for_order+8].after_arrest != "no_charge" else ""}
+    - "arrest_10_number": ${qualified_arrests[x.index_for_order+9].case_number if qualified_arrests[x.index_for_order+9].after_arrest != "no_charge" else ""}
     - "additional_order": ${True if len(qualified_arrests) > (x.index_for_order+10) else False}
 ---
 attachment:
@@ -1432,11 +1630,11 @@ attachment:
     - "user_birth_date": ${users[0].birthdate}
     - "ir_number": ${ir_number if ir_number_check else ""}
     - "case_number": ${""}
-    - "arrest_1_number": ${x.case_number}
-    - "arrest_2_number": ${qualified_arrests[x.index_for_records+1].case_number}
-    - "arrest_3_number": ${qualified_arrests[x.index_for_records+2].case_number}
-    - "arrest_4_number": ${qualified_arrests[x.index_for_records+3].case_number}
-    - "arrest_5_number": ${qualified_arrests[x.index_for_records+4].case_number}
+    - "arrest_1_number": ${x.case_number if x.after_arrest != "no_charge" else ""}
+    - "arrest_2_number": ${qualified_arrests[x.index_for_records+1].case_number if qualified_arrests[x.index_for_records+1].after_arrest != "no_charge" else ""}
+    - "arrest_3_number": ${qualified_arrests[x.index_for_records+2].case_number if qualified_arrests[x.index_for_records+2].after_arrest != "no_charge" else ""}
+    - "arrest_4_number": ${qualified_arrests[x.index_for_records+3].case_number if qualified_arrests[x.index_for_records+3].after_arrest != "no_charge" else ""}
+    - "arrest_5_number": ${qualified_arrests[x.index_for_records+4].case_number if qualified_arrests[x.index_for_records+4].after_arrest != "no_charge" else ""}
     - "arrest_1_lern": ${x.enforcement_number}
     - "arrest_2_lern": ${qualified_arrests[x.index_for_records+1].enforcement_number}
     - "arrest_3_lern": ${qualified_arrests[x.index_for_records+2].enforcement_number}
@@ -1532,14 +1730,18 @@ review:
     button: |
       **Records: (Edit to review, change details, or add more)**
 
-      % for my_var in arrests:
-        1. Arrest date: ${ my_var.date}
+      % for arrest in arrests:
+        % if defined("arrest.complete") and not is_eligible(arrest):
+        1. Arrest date: ${ arrest.date}, not included in request
+        % else:
+        1. Arrest date: ${arrest.date}
+        % endif
       % endfor
   - note: |
-      <h4>Your records</h4>
+      <h4>About you</h4>
   - Edit: users[0].name.first
     button: |
-      **Filing details:**
+      **Your name:**
       ${ users[0].name_full() }
   - Edit: users[0].has_other_names
     button: |
@@ -1573,6 +1775,36 @@ review:
       **Your email:**
       ${ users[0].email }
     show if: users[0].has_email_address
+  - note: |
+      <h4>Filing details</h4>
+  - Edit: add_order_recipient
+    button: |
+      **Do you want the court to send the order to another person or address?**
+      ${ word(yesno(add_order_recipient)) }      
+  - Edit: order_recipient.name.first
+    button: |
+      **Send order to this person:**
+      ${ order_recipient.name_full() }
+    show if: add_order_recipient
+  - Edit: order_recipient.address.address
+    button: |
+      **${ order_recipient.name_full() }'s address:**[NEWLINE]
+      ${ order_recipient.address.on_one_line(bare=True) }
+    show if: add_order_recipient
+  - Edit: order_recipient.phone_number
+    button: |
+      **${ order_recipient.name_full() }'s phone number:**
+      % if order_recipient.phone_number == "":
+      None entered
+      % else:
+      ${ phone_number_formatted(order_recipient.phone_number) }
+      % endif
+    show if: add_order_recipient
+  - Edit: order_recipient.email
+    button: |
+      **${ order_recipient.name_full() }'s email:**
+      ${ order_recipient.email }
+    show if: add_order_recipient    
   - Edit: states_attorney_address.address
     button: |
       **${end_in_county(filing_location.county)} State's Attorney's address:**
@@ -1630,8 +1862,12 @@ review:
     button: |
       **Records: (Edit to review, change details, or add more)**
 
-      % for my_var in arrests:
-        1. Arrest date: ${ my_var.date}
+      % for arrest in arrests:
+        % if defined("arrest.complete") and not is_eligible(arrest):
+        1. Arrest date: ${ arrest.date}, not included in request
+        % else:
+        1. Arrest date: ${arrest.date}
+        % endif
       % endfor
 ---
 id: arrests revisit review screen
@@ -1727,7 +1963,7 @@ review:
       % elif x.at_court == "not_delinquent":
       * I was found not delinquent (not guilty).
       % else:
-      * I was found guilty.
+      * I was adjudicated delinquent (found guilty).
       % endif
     show if: x.after_arrest == "court"
   - Edit: x.found_guilty
@@ -1783,22 +2019,18 @@ review:
     button: |
       **Outcome of the arrest:**
 
-      % if x.outcome == "RWC":
-      * "**RWC** - Released Without Charge"
-      % elif x.outcome == "DA":
-      * "**DA** - Dismissal or Acquittal, Finding of No Probable Cause (FNPC), Found Not Guilty (FNG), Nolle Prosequi, Non-Suit, Stricken Off with Leave to Reinstate (SOL)"
+      % if x.outcome == "A":
+      * "**A** - Arrest without court case filed/station or probation adjustment/pre-petition diversion"
+      % elif x.outcome == "ND":
+      * "**ND** - Adjudicated not delinquent (found not guilty)"
       % elif x.outcome == "S":
-      * "**S** - Court Supervision, completed successfully"
-      % elif x.outcome == "QP":
-      * "**QP** - First Offender Drug Probation or Qualified Probation, completed successfully"
-      % elif x.outcome == "FI":
-      * "**FI** - Found Factually Innocent"
-      % elif x.outcome == "RV":
-      * "**RV** - Guilty / Conviction Reversed or Vacated"
-      % elif x.outcome == "P":
-      * "**P** - Guilty / Conviction with a Pardon from the Governor"
+      * "***S** - Given supervision and the court decided it was completed successfully"
+      % elif x.outcome == "BC":
+      * "**BC** - Adjudicated delinquent for (guilty of) class B or C misdemeanor (includes supervision not terminated successfully)"
+      % elif x.outcome == "FA":
+      * "**FA** - Adjudicated delinquent for (guilty of) felony or class A misdemeanor (includes supervision not terminated successfully)"
       % else:
-      * "**CE** - Guilty / Conviction with a Certificate of Eligibility for Expungement from Prisoner Review Board"
+      * "**D** - Case dismissed (thrown out)"
       % endif
   - Edit: x.case_number
     button: |
@@ -1808,6 +2040,7 @@ review:
       % else:
       ${x.case_number}
       % endif
+    show if: x.after_arrest != "no_charge"
   - Edit: x.enforcement_number
     button: |
       **Law enforcement number:**
@@ -1818,11 +2051,11 @@ review:
       % endif
 continue button label: Next
 ---
-id: filing details review screen
-section: Filing details
-event: section_filing
+id: user review screen
+section: About you
+event: section_user
 question: |
-  Filing details
+  About you
 subquestion: |
   <div class="alert alert-info ilao-info" role="alert">
     <h6 class="alert-heading">Information about criminal records relief</h6>
@@ -1872,6 +2105,57 @@ review:
       **Your email:**
       ${ users[0].email }
     show if: users[0].has_email_address
+  - Edit: e_signature
+    button: |
+      **Do you want to add your e-signature to your forms?**
+      ${ word(yesno(e_signature)) }
+---
+id: filing details review screen
+section: Filing details
+event: section_filing
+question: |
+  Filing details
+subquestion: |
+  <div class="alert alert-info ilao-info" role="alert">
+    <h6 class="alert-heading">Information about criminal records relief</h6>
+    <p><ul>
+      <li><a href="${url_action('expungement_info')}"><b>Clearing your criminal record in Illinois</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Obstacles to clearing your criminal record</b></a></li>
+      <li><a href="${url_action('records_info')}"><b>Two kinds of criminal records</b></a></li>
+      <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your criminal records</b></a></li>
+    </p>
+  </div>
+  
+  Edit your answers below.
+review:
+  - Edit: add_order_recipient
+    button: |
+      **Do you want the court to send the order to another person or address?**
+      ${ word(yesno(add_order_recipient)) }      
+  - Edit: order_recipient.name.first
+    button: |
+      **Send order to this person:**
+      ${ order_recipient.name_full() }
+    show if: add_order_recipient
+  - Edit: order_recipient.address.address
+    button: |
+      **${ order_recipient.name_full() }'s address:**[NEWLINE]
+      ${ order_recipient.address.on_one_line(bare=True) }
+    show if: add_order_recipient
+  - Edit: order_recipient.phone_number
+    button: |
+      **${ order_recipient.name_full() }'s phone number:**
+      % if order_recipient.phone_number == "":
+      None entered
+      % else:
+      ${ phone_number_formatted(order_recipient.phone_number) }
+      % endif
+    show if: add_order_recipient
+  - Edit: order_recipient.email
+    button: |
+      **${ order_recipient.name_full() }'s email:**
+      ${ order_recipient.email }
+    show if: add_order_recipient    
   - Edit: states_attorney_address.address
     button: |
       **${end_in_county(filing_location.county)} State's Attorney's address:**
