@@ -1,3 +1,5 @@
+from docassemble.base.util import today
+
 def is_eligible(arrest):
   if arrest.after_arrest == "court" and arrest.at_court == "other":
     if arrest.found_guilty == "other" or arrest.found_guilty == "traffic" or arrest.found_guilty == "murder":

@@ -25,7 +25,7 @@ objects:
   - court_list: ALCourtLoader.using(file_name='docassemble.ILAO:data/sources/il_courts.xlsx')
   - cook_preview: DAStaticFile.using(filename="cook_county_and_chicago_examples.pdf")
   - il_preview: DAStaticFile.using(filename="illinois_not_cook_examples.pdf")
-  - qualified_arrests: DAList.using(object_type=Thing, complete_attribute=['complete'], there_are_any=True, there_is_another=False)
+  - qualified_arrests: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True, there_is_another=False)
   - expungement_outcomes: DAList.using(there_are_any=True)
 ---
 modules:
@@ -192,8 +192,9 @@ code: |
   for agency in agencies:
     agency.include_flag = False
     for arrest in arrests:
-      if agency == arrest.agency:
-        agency.include_flag = True
+      if is_eligible(arrest):
+        if agency == arrest.agency:
+          agency.include_flag = True
     if agency.include_flag:
       notice_agencies.append(agency)
   build_notice_agencies = True
@@ -237,7 +238,7 @@ question: |
 subquestion: |
   Welcome to Illinois Legal Aid Online's **Expunge juvenile records** Easy Form.
 
-  This program makes a *Request to Expunge Juvenile Records*. That form asks the court to clear juvenile arrests and **{adjudications}** from your  records. A juvenile record is like a criminal record, but it only includes cases from before you turned 18 years old.
+  This program makes a *Request to Expunge Juvenile Records*. That form asks the court to clear juvenile arrests and **{adjudications}** from your records. A juvenile record is like a criminal record, but it only includes cases from before you turned 18 years old.
   
   The forms you make with this program can only be used in Illinois.
   
@@ -339,7 +340,7 @@ subquestion: |
   There are two ways to clear your juvenile record:
 
   * **Expungement**: Erases arrests, dismissed charges, court supervisions, and qualified probations that were completed successfully from your juvenile record so it is like they never happened.
-  * **Executive Clemency**: If you do not qualify for expungement, you can [**apply for a pardon from the Governor**](https://prb.illinois.gov/prbexclemex.html) forgiving you for your criminal convictions. A pardon does not erase or hide your conviction on its own. If you get a pardon authorizing expungement, you can then apply to have your record expunged. To learn more about getting a pardon, read ILAO's article about [**executive clemency**](https://www.illinoislegalaid.org/node/37761).
+  * **Executive Clemency**: If you do not qualify for expungement, you can [**apply for a pardon from the Governor :external-link:**](https://prb.illinois.gov/prbexclemex.html) forgiving you for your criminal convictions. A pardon does not erase or hide your conviction on its own. If you get a pardon authorizing expungement, you can then apply to have your record expunged. To learn more about getting a pardon, read ILAO's article about [**executive clemency**](https://www.illinoislegalaid.org/node/37761).
 ---
 id: more expungement info
 continue button field: more_expungement_info
@@ -373,11 +374,11 @@ continue button field: more_records_info
 question: |
   How to view or get copies of your criminal records
 subquestion: |
-  Juvenile arrest records are available at the Juvenile Courthouse located at 1100 South Hamilton in Chicago. You can also get assistance from [**Legal Aid Chicago’s Juvenile Expungement Help Desk**](https://legalaidchicago.org/get-help/court-based-help-desks/). If you were arrested by the Chicago Police Department, you can also get your RAP sheet from them.
+  Juvenile arrest records are available at the Juvenile Courthouse located at 1100 South Hamilton in Chicago. You can also get assistance from [**Legal Aid Chicago’s Juvenile Expungement Help Desk :external-link:**](https://legalaidchicago.org/get-help/court-based-help-desks/). If you were arrested by the Chicago Police Department, you can also get your RAP sheet from them.
 
   In the rest of Illinois, you can get your records from the agency that arrested you or through the Illinois State Police's Access and Review Process.
 
-  For more information, you can read the Illinois Courts instructions on [**how to expunge juvenile records**](https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/expungement-sealing/).
+  For more information, you can read the Illinois Courts instructions on [**how to expunge juvenile records :external-link:**](https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/expungement-sealing/).
 
   Records from the **Circuit Clerk**: Many court records are available online. Some counties, like Cook County, do not provide online access to criminal records.
   ${ collapse_template(clerk_records_help) } 
@@ -1948,7 +1949,7 @@ review:
       % elif x.after_arrest == "diversion":
       * I was given a **diversion** program at the police station or at the probation department.
       % elif x.after_arrest == "successful_supervision":
-      * I was given **supervision**, which the court said was **completed successfully**.: 
+      * I was given **supervision**, which the court said was **completed successfully**.
       % elif x.after_arrest == "failed_supervision":
       * I was given **supervision**, which the court said was **not** completed successfully.
       % else:
@@ -2024,7 +2025,7 @@ review:
       % elif x.outcome == "ND":
       * "**ND** - Adjudicated not delinquent (found not guilty)"
       % elif x.outcome == "S":
-      * "***S** - Given supervision and the court decided it was completed successfully"
+      * "**S** - Given supervision and the court decided it was completed successfully"
       % elif x.outcome == "BC":
       * "**BC** - Adjudicated delinquent for (guilty of) class B or C misdemeanor (includes supervision not terminated successfully)"
       % elif x.outcome == "FA":
