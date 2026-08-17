@@ -15,6 +15,7 @@ objects:
   - order_recipient: ALIndividual
   - arrests: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True)
   - all_numbers: DAList.using(object_type=Thing, there_are_any=False, there_is_another=False)
+  - dummy_for_order: DAList.using(object_type=Thing, there_are_any=False, there_is_another=False)
   - agencies: ALPeopleList.using(there_are_any=False, there_is_another=False)
   - notice_agencies: ALPeopleList.using(there_are_any=False, there_is_another=False)
   - arrests[i].agency: ALIndividual
@@ -267,7 +268,7 @@ subquestion: |
     
   This information may be found on:
 
-  * Court records (might be called a "docket sheet" or a "**{disposition}**") for all of your criminal cases,
+  * Court records (might be called a "docket sheet" or a "**{disposition}**") for all of your juvenile cases,
   * Your Illinois State Police Statewide Criminal History Transcript, and
   * If you had arrests or charges in Chicago, your Chicago Police RAP Sheet (Record of Arrests and Prosecutions).
   
@@ -278,7 +279,7 @@ subquestion: |
   Click on **{green words}** to learn what they mean. Some pages have a question mark in a circle ${ fa_icon("question-circle", color_css="#0dcaf0" ) } that helps explain things.
 terms:
   - "disposition": |
-      A **disposition** is the final judgment or outcome in a court case. There are no court dispositions for arrests or charges that did not lead to a court case
+      A **disposition** is the final judgment or outcome in a court case. There are no court dispositions for arrests or charges that did not lead to a court case.
 ---
 template: help_example
 subject: |
@@ -343,14 +344,14 @@ subquestion: |
   There are two ways to clear your juvenile record:
 
   * **Expungement**: Erases arrests, dismissed charges, court supervisions, and qualified probations that were completed successfully from your juvenile record so it is like they never happened.
-  * **Executive Clemency**: If you do not qualify for expungement, you can [**apply for a pardon from the Governor :external-link:**](https://prb.illinois.gov/prbexclemex.html) forgiving you for your criminal convictions. A pardon does not erase or hide your conviction on its own. If you get a pardon authorizing expungement, you can then apply to have your record expunged. To learn more about getting a pardon, read ILAO's article about [**executive clemency**](https://www.illinoislegalaid.org/node/37761).
+  * **Executive Clemency**: If you do not qualify for expungement, you can [**apply for a pardon from the Governor**](https://prb.illinois.gov/prbexclemex.html) forgiving you for your juvenile convictions. A pardon does not erase or hide your conviction on its own. If you get a pardon authorizing expungement, you can then apply to have your record expunged. To learn more about getting a pardon, read ILAO's article about [**executive clemency**](https://www.illinoislegalaid.org/node/37761).
 ---
 id: more expungement info
 continue button field: more_expungement_info
 question: |
   Objections to expungement
 subquestion: |
-  Police departments and prosecutors for your criminal cases get a chance to object to your *Request to Expunge Juvenile Records*.
+  Police departments and prosecutors for your juvenile cases get a chance to object to your *Request to Expunge Juvenile Records*.
 
   The police departments and prosecutors have 45 days from the day they receive your *Request* to file a written objection with the court. If they **object**, it means they do not want your record to be expunged. If the agencies do not object during the 45 days, they cannot object at a later time.
   
@@ -377,16 +378,16 @@ continue button field: more_records_info
 question: |
   How to view or get copies of your juvenile records
 subquestion: |
-  Juvenile arrest records are available at the Juvenile Courthouse located at 1100 South Hamilton in Chicago. You can also get assistance from [**Legal Aid Chicago’s Juvenile Expungement Help Desk :external-link:**](https://legalaidchicago.org/get-help/court-based-help-desks/). If you were arrested by the Chicago Police Department, you can also get your RAP sheet from them.
+  Juvenile arrest records are available at the Juvenile Courthouse located at 1100 South Hamilton in Chicago. You can also get assistance from [**Legal Aid Chicago’s Juvenile Expungement Help Desk**](https://legalaidchicago.org/get-help/court-based-help-desks/). If you were arrested by the Chicago Police Department, you can also get your RAP sheet from them.
 
   In the rest of Illinois, you can get your records from the agency that arrested you or through the Illinois State Police's Access and Review Process.
 
-  For more information, you can read the Illinois Courts instructions on [**how to expunge juvenile records :external-link:**](https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/expungement-sealing/).
+  For more information, you can read the Illinois Courts instructions on [**how to expunge juvenile records**](https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/expungement-sealing/).
 
   Records from the **Circuit Clerk**: Many court records are available online. Some counties, like Cook County, do not provide online access to juvenile records.
   ${ collapse_template(clerk_records_help) } 
   
-  Records from the **Illinois State Police**: You can request your entire criminal history information from the Illinois State Police. Although not required, it is the best available source for your statewide juvenile record. Please note, there might be discrepancies or missing information.
+  Records from the **Illinois State Police**: You can request your entire juvenile history information from the Illinois State Police. Although not required, it is the best available source for your statewide juvenile record. Please note, there might be discrepancies or missing information.
   ${ collapse_template(isp_records_help) }
 
   Records from the **Chicago Police Department**: If you were arrested by the Chicago Police Department, you must get your records from them. You can order a RAP sheet from the Chicago Police Department. There will be a fee.
@@ -398,7 +399,7 @@ subject: |
 content: |  
   If you cannot find your court records online, go to the Circuit Clerk's Office in the county where your case was filed. Ask the Circuit Clerk for the information you need to fill out the forms. This information can be found in your court records.
   
-  You may be able to use the public computer at the Circuit Clerk's office to look up records and print them out or write down the information. Copies are available for a fee. Find your Circuit Clerk's website at: [ilcourts.info/clerks **:external-link:**](https://ilcourts.info/clerks).
+  You may be able to use the public computer at the Circuit Clerk's office to look up records and print them out or write down the information. Copies are available for a fee. Find your Circuit Clerk's website at: [ilcourts.info/clerks](https://ilcourts.info/clerks).
 ---
 template: isp_records_help
 subject: |
@@ -412,12 +413,12 @@ content: |
     260 North Chicago Street[NEWLINE]
     Joliet, Illinois 60432[NEWLINE]
     (815) 740-5160[NEWLINE]
-    [isp.illinois.gov/BureauOfIdentification **:external-link:**](https://isp.illinois.gov/BureauOfIdentification)
+    [isp.illinois.gov/BureauOfIdentification](https://isp.illinois.gov/BureauOfIdentification)
 
   * From your local law enforcement agency:[NEWLINE]
     Every law enforcement agency is allowed to give you this information. Check with your local law enforcement agency to find out costs and times for fingerprinting.
 
-  * From any licensed LiveScan vendor to get your transcript using your fingerprint. Find a Fingerprint Vendor at the [**Illinois Department of Financial and Professional Regulation :external-link:**](https://idfprapps.illinois.gov/licenselookup/fingerprintlist.asp) website.
+  * From any licensed LiveScan vendor to get your transcript using your fingerprint. Find a Fingerprint Vendor at the [**Illinois Department of Financial and Professional Regulation**](https://idfprapps.illinois.gov/licenselookup/fingerprintlist.asp) website.
 ---
 template: cpd_records_help
 subject: |
@@ -586,8 +587,8 @@ question: |
   What happened when you went to court for the ${arrests[i].date} arrest?
 field: arrests[i].at_court
 choices:
-  - The case was thrown out (dismissed).: dismissed
-  - I was adjudicated not delinquent (found not guilty) or the case was dismissed (sometimes marked as Nolle Prosequi (NP) or Stricken Off with Leave to Reinstate (SOL)).: not_delinquent
+  - The case was dismissed (sometimes marked as Nolle Prosequi (NP) or Stricken Off with Leave to Reinstate (SOL)).: dismissed
+  - I was adjudicated not delinquent (found not guilty).: not_delinquent
   - Something else happened: other
 ---
 id: found guilty
@@ -826,9 +827,9 @@ subject: |
 content: |  
   Your court records or RAP sheet should have this information. See where to find it on these examples:
 
-  * [**Cook County court disposition and a Chicago Police RAP sheet :external-link:**](${ cook_preview.url_for() })
+  * [**Cook County court disposition and a Chicago Police RAP sheet**](${ cook_preview.url_for() })
   
-  * [**Court record or docket sheet (outside of Cook County) and an Illinois State Police RAP sheet :external-link:**](${ il_preview.url_for() })
+  * [**Court record or docket sheet (outside of Cook County) and an Illinois State Police RAP sheet**](${ il_preview.url_for() })
 ---
 id: arrest outcome
 question: |
@@ -879,7 +880,7 @@ code: |
     expungement_outcomes.append({
       'abbreviation': 'S',
       'disposition': 'Given supervision and the court decided it was completed successfully',
-      'more_information': 'The court kept your case open for a set period of time. You followed the conditions during that time and the court dismissed the criminal charges against you.'
+      'more_information': 'The court kept your case open for a set period of time. You followed the conditions during that time and the court dismissed the juvenile charges against you.'
     })
     expungement_outcomes.append({
       'abbreviation': 'BC',
@@ -993,9 +994,9 @@ content: |
   
   To make a new email account try one of these email services:
   
-  * [**Gmail :external-link:**](https://accounts.google.com/SignUp)
-  * [**Outlook :external-link:**](https://outlook.live.com/owa/?nlp=1&signup=1)
-  * [**Yahoo :external-link:**](https://login.yahoo.com/account/create?.lang=en-US&.intl=us)
+  * [**Gmail**](https://accounts.google.com/SignUp)
+  * [**Outlook**](https://outlook.live.com/owa/?nlp=1&signup=1)
+  * [**Yahoo**](https://login.yahoo.com/account/create?.lang=en-US&.intl=us)
 ---
 id: change address information
 continue button field: change_address
@@ -1064,7 +1065,7 @@ fields:
 ---
 id: order recipient address
 question: |
-  At what address should the court send the order to ${order_recipient.name_full() }?
+  What address should the court send the order to ${order_recipient.name_full() }?
 subquestion: |
   **This address will appear on your court papers.**
 fields:
@@ -1122,7 +1123,7 @@ question: |
 subquestion: |
   After you download your forms, you must file them with the Circuit Clerk in the county where you were arrested or charged. This program **does not file** your forms for you. To learn about the filing process, see ILAO's [**Court process for expungement or sealing FAQ**](https://www.illinoislegalaid.org/node/185996).
 
-  For details about how to file expungement requests in ${ filing_location.county } County, contact the Circuit Clerk's office. You can find your Circuit Clerk's phone number on the [**Illinois Courts website :external-link:**](https://ilcourts.info/clerks).
+  For details about how to file expungement requests in ${ filing_location.county } County, contact the Circuit Clerk's office. You can find your Circuit Clerk's phone number on the [**Illinois Courts website:**](https://ilcourts.info/clerks).
 
   There is no fee to file a *${form_name}* in Illinois. However, there may be fees to get records from police departments, certified dispositions, or documents. 
 
@@ -1152,7 +1153,7 @@ subquestion: |
   
   Read the instructions for next steps on how to use the forms and follow up on your *Request*. 
   
-  This program **does not file** your forms with the court. You will need to do this yourself. Learn about [**e-filing in Illinois :external-link:**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
+  This program **does not file** your forms with the court. You will need to do this yourself. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
 
   ${ action_button_html(url_action('review_answers'), label=':edit: Make changes', color='success', size="md") }
   
@@ -1162,7 +1163,7 @@ subquestion: |
 
   ${ al_user_bundle.send_button_html(show_editable_checkbox=False) }
 
-  **Note:** This program **does not file** your forms with the court. Learn about [**e-filing in Illinois :external-link:**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
+  **Note:** This program **does not file** your forms with the court. Learn about [**e-filing in Illinois**](https://www.illinoiscourts.gov/eservices/information-for-filers-without-lawyers).
   
   Thank you for using ILAO Easy Forms!
 under: |
@@ -1208,9 +1209,13 @@ objects:
   #- x.order: ALDocument.using(title="Order to Expunge Juvenile Records (draft)", filename="order_to_expunge.pdf", has_addendum=False)
   - x.records: ALDocument.using(title="Additional Records for Expungement", filename="records.pdf", has_addendum=False)
 ---
+generic object: Individual
+objects: 
+  - x.order: ALDocument.using(title="Order to Expunge Juvenile Records (draft)", filename="order_to_expunge.pdf", has_addendum=False)
+---
 objects:
   - all_numbers[i].case_list: ALDocument.using(title="Case List", filename="case_list.pdf", has_addendum=False)
-  - all_numbers[i].order: ALDocument.using(title="Order to Expunge Juvenile Records (draft)", filename="order_to_expunge.pdf", has_addendum=False)
+  #- all_numbers[i].order: ALDocument.using(title="Order to Expunge Juvenile Records (draft)", filename="order_to_expunge.pdf", has_addendum=False)
 ---
 objects: 
   - order_bundle: ALDocumentBundle.using(elements=[], title="Order to Expunge Juvenile Records (draft)", filename="order.pdf", has_addendum=False)
@@ -1440,6 +1445,10 @@ code: |
   records_bundle.elements = elements_for_records_bundle
 
   number_index = 0
+  #This is added to ensure that the order template still assembles even if the user has not entered any case numbers. dummy_for_order is a list that tries to approximate the all_numbers list object without containing any meaningful data
+  if len(all_numbers) == 0:
+    dummy_for_order[0].order.enabled = True
+    elements_for_order_bundle.append(dummy_for_order[0].order)
   while number_index < len(all_numbers):
     if number_index % 10 == 0:
       all_numbers[number_index].index_for_order = number_index
@@ -1475,10 +1484,15 @@ code: |
       all_numbers.appendObject(Individual)
       all_numbers[numbers_index].name.first = arrest.enforcement_number
       numbers_index += 1
+  if len(all_numbers) == 0:
+    dummy_for_order.clear()
+    dummy_for_order.appendObject(Individual)
+    dummy_for_order[0].name.first = "______"
   list_numbers = True
 ---
+generic object: Individual
 attachment:
-  variable name: all_numbers[i].order[j]
+  variable name: x.order[i]
   name: order
   filename: order
   editable: False
@@ -1510,17 +1524,17 @@ attachment:
         % else:
         ${ users[0].address.on_one_line(bare=True) }
         % endif
-    - "arrest_1_number": ${all_numbers[i].name.first}
-    - "arrest_2_number": ${all_numbers[i+1].name.first}
-    - "arrest_3_number": ${all_numbers[i+2].name.first}
-    - "arrest_4_number": ${all_numbers[i+3].name.first}
-    - "arrest_5_number": ${all_numbers[i+4].name.first}
-    - "arrest_6_number": ${all_numbers[i+5].name.first}
-    - "arrest_7_number": ${all_numbers[i+6].name.first}
-    - "arrest_8_number": ${all_numbers[i+7].name.first}
-    - "arrest_9_number": ${all_numbers[i+8].name.first}
-    - "arrest_10_number": ${all_numbers[i+9].name.first}
-    - "additional_order": ${True if all_numbers.number_gathered() > (i+10) else False}
+    - "arrest_1_number": ${all_numbers[x.index_for_order].name.first}
+    - "arrest_2_number": ${all_numbers[x.index_for_order+1].name.first}
+    - "arrest_3_number": ${all_numbers[x.index_for_order+2].name.first}
+    - "arrest_4_number": ${all_numbers[x.index_for_order+3].name.first}
+    - "arrest_5_number": ${all_numbers[x.index_for_order+4].name.first}
+    - "arrest_6_number": ${all_numbers[x.index_for_order+5].name.first}
+    - "arrest_7_number": ${all_numbers[x.index_for_order+6].name.first}
+    - "arrest_8_number": ${all_numbers[x.index_for_order+7].name.first}
+    - "arrest_9_number": ${all_numbers[x.index_for_order+8].name.first}
+    - "arrest_10_number": ${all_numbers[x.index_for_order+9].name.first}
+    - "additional_order": ${True if all_numbers.number_gathered() > (x.index_for_order+10) else False}
 ---
 attachment:
   variable name: all_numbers[i].case_list[j]
@@ -1686,7 +1700,7 @@ subquestion: |
     <h6 class="alert-heading">Information about juvenile records relief</h6>
     <p><ul>
       <li><a href="${url_action('expungement_info')}"><b>Clearing your juvenile record in Illinois</b></a></li>
-      <li><a href="${url_action('more_expungement_info')}"><b>Objections to clearing your juvenile record</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Objections to expungement</b></a></li>
       <li><a href="${url_action('records_info')}"><b>Two kinds of juvenile records</b></a></li>
       <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your juvenile records</b></a></li>
     </p>
@@ -1816,7 +1830,7 @@ subquestion: |
     <h6 class="alert-heading">Information about juvenile records relief</h6>
     <p><ul>
       <li><a href="${url_action('expungement_info')}"><b>Clearing your juvenile record in Illinois</b></a></li>
-      <li><a href="${url_action('more_expungement_info')}"><b>Objections to clearing your juvenile record</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Objections to expungement</b></a></li>
       <li><a href="${url_action('records_info')}"><b>Two kinds of juvenile records</b></a></li>
       <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your juvenile records</b></a></li>
     </p>
@@ -1863,7 +1877,7 @@ subquestion: |
     <h6 class="alert-heading">Information about juvenile records relief</h6>
     <p><ul>
       <li><a href="${url_action('expungement_info')}"><b>Clearing your juvenile record in Illinois</b></a></li>
-      <li><a href="${url_action('more_expungement_info')}"><b>Objections to clearing your juvenile record</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Objections to expungement</b></a></li>
       <li><a href="${url_action('records_info')}"><b>Two kinds of juvenile records</b></a></li>
       <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your juvenile records</b></a></li>
     </p>
@@ -1909,7 +1923,7 @@ subquestion: |
     <h6 class="alert-heading">Information about juvenile records relief</h6>
     <p><ul>
       <li><a href="${url_action('expungement_info')}"><b>Clearing your juvenile record in Illinois</b></a></li>
-      <li><a href="${url_action('more_expungement_info')}"><b>Objections to clearing your juvenile record</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Objections to expungement</b></a></li>
       <li><a href="${url_action('records_info')}"><b>Two kinds of juvenile records</b></a></li>
       <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your juvenile records</b></a></li>
     </p>
@@ -2049,7 +2063,7 @@ subquestion: |
     <h6 class="alert-heading">Information about juvenile records relief</h6>
     <p><ul>
       <li><a href="${url_action('expungement_info')}"><b>Clearing your juvenile record in Illinois</b></a></li>
-      <li><a href="${url_action('more_expungement_info')}"><b>Objections to clearing your juvenile record</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Objections to expungement</b></a></li>
       <li><a href="${url_action('records_info')}"><b>Two kinds of juvenile records</b></a></li>
       <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your juvenile records</b></a></li>
     </p>
@@ -2108,7 +2122,7 @@ subquestion: |
     <h6 class="alert-heading">Information about juvenile records relief</h6>
     <p><ul>
       <li><a href="${url_action('expungement_info')}"><b>Clearing your juvenile record in Illinois</b></a></li>
-      <li><a href="${url_action('more_expungement_info')}"><b>Objections to clearing your juvenile record</b></a></li>
+      <li><a href="${url_action('more_expungement_info')}"><b>Objections to expungement</b></a></li>
       <li><a href="${url_action('records_info')}"><b>Two kinds of juvenile records</b></a></li>
       <li><a href="${url_action('more_records_info')}"><b>How to view or get copies of your juvenile records</b></a></li>
     </p>
