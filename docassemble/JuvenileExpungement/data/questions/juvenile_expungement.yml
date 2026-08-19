@@ -830,6 +830,8 @@ content: |
   * [**Cook County court disposition and a Chicago Police RAP sheet**](${ cook_preview.url_for() })
   
   * [**Court record or docket sheet (outside of Cook County) and an Illinois State Police RAP sheet**](${ il_preview.url_for() })
+
+  **Note:** These examples will open in a new tab or window.
 ---
 id: arrest outcome
 question: |
