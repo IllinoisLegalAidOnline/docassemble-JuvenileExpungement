@@ -1,7 +1,7 @@
 metadata:
   title: Expunge juvenile records
   short title: Expunge juvenile records
-  comment: This program helps you ask the court to expunge arrests and convictions from your juvenile record.
+  comment: This program helps you ask the court to expunge arrests and adjudications from your juvenile record.
   authors:
     - Vivian McNaughton
 ---
@@ -15,7 +15,7 @@ objects:
   - order_recipient: ALIndividual
   - arrests: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True)
   - all_numbers: DAList.using(object_type=Thing, there_are_any=False, there_is_another=False)
-  - dummy_for_order: DAList.using(object_type=Thing, there_are_any=False, there_is_another=False)
+  - dummy_list_for_order_if_no_numbers: DAList.using(object_type=Thing, there_are_any=False, there_is_another=False)
   - agencies: ALPeopleList.using(there_are_any=False, there_is_another=False)
   - notice_agencies: ALPeopleList.using(there_are_any=False, there_is_another=False)
   - arrests[i].agency: ALIndividual
@@ -344,7 +344,7 @@ subquestion: |
   There are two ways to clear your juvenile record:
 
   * **Expungement**: Erases arrests, dismissed charges, court supervisions, and qualified probations that were completed successfully from your juvenile record so it is like they never happened.
-  * **Executive Clemency**: If you do not qualify for expungement, you can [**apply for a pardon from the Governor**](https://prb.illinois.gov/prbexclemex.html) forgiving you for your juvenile convictions. A pardon does not erase or hide your conviction on its own. If you get a pardon authorizing expungement, you can then apply to have your record expunged. To learn more about getting a pardon, read ILAO's article about [**executive clemency**](https://www.illinoislegalaid.org/node/37761).
+  * **Executive Clemency**: If you do not qualify for expungement, you can [**apply for a pardon from the Governor**](https://prb.illinois.gov/prbexclemex.html) forgiving you for your juvenile adjudications. A pardon does not erase or hide your case on its own. If you get a pardon authorizing expungement, you can then apply to have your record expunged. To learn more about getting a pardon, read ILAO's article about [**executive clemency**](https://www.illinoislegalaid.org/node/37761).
 ---
 id: more expungement info
 continue button field: more_expungement_info
@@ -370,7 +370,7 @@ subquestion: |
 
   **Police records**
 
-  * An Illinois State Police Statewide Criminal History Transcript lists most arrests and convictions that happened in Illinois.
+  * An Illinois State Police Statewide Criminal History Transcript lists most arrests and adjudications that happened in Illinois.
   * A Chicago RAP Sheet (Record of Arrests and Prosecutions) lists all arrests, charges, and court case outcomes that happened in Chicago.
 ---
 id: more records info
@@ -1445,10 +1445,10 @@ code: |
   records_bundle.elements = elements_for_records_bundle
 
   number_index = 0
-  #This is added to ensure that the order template still assembles even if the user has not entered any case numbers. dummy_for_order is a list that tries to approximate the all_numbers list object without containing any meaningful data
+  #This is added to ensure that the order template still assembles even if the user has not entered any case numbers. dummy_list_for_order_if_no_numbers is a list that tries to approximate the all_numbers list object without containing any meaningful data
   if len(all_numbers) == 0:
-    dummy_for_order[0].order.enabled = True
-    elements_for_order_bundle.append(dummy_for_order[0].order)
+    dummy_list_for_order_if_no_numbers[0].order.enabled = True
+    elements_for_order_bundle.append(dummy_list_for_order_if_no_numbers[0].order)
   while number_index < len(all_numbers):
     if number_index % 10 == 0:
       all_numbers[number_index].index_for_order = number_index
@@ -1485,9 +1485,9 @@ code: |
       all_numbers[numbers_index].name.first = arrest.enforcement_number
       numbers_index += 1
   if len(all_numbers) == 0:
-    dummy_for_order.clear()
-    dummy_for_order.appendObject(Individual)
-    dummy_for_order[0].name.first = "______"
+    dummy_list_for_order_if_no_numbers.clear()
+    dummy_list_for_order_if_no_numbers.appendObject(Individual)
+    dummy_list_for_order_if_no_numbers[0].name.first = "______"
   list_numbers = True
 ---
 generic object: Individual
