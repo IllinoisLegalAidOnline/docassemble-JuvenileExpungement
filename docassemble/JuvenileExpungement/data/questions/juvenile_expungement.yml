@@ -243,9 +243,7 @@ subquestion: |
 
   This program makes a *Request to Expunge Juvenile Records*. You can use this form to ask a judge to clear eligible juvenile arrests, cases, and **{adjudications}** from your record. A juvenile record is created when a person under 18 is arrested or goes to juvenile court. 
 
-  This form can only be used for records related to offenses you were accused of committing before you turned 18. It does not apply to other types of juvenile court cases.
-
-  This form is only for records related to offenses you were accused of committing as a minor. It does not work with other types of juvenile court cases, such as abuse or neglect cases.
+  This form can only be used for records related to offenses you were accused of committing as a minor. It does not apply to other types of juvenile court cases, such as abuse or neglect cases.
   
   To learn more, read ILAO's article, [**Juvenile expungement basics**](https://www.illinoislegalaid.org/node/51836).
 field: sees_nav_bar
@@ -554,9 +552,9 @@ continue button field: arrests_intro
 question: |
   Arrests and court records
 subquestion: |
-  The next screens will ask about your juvenile records. These include your arrest records and your court file. The questions will ask for details to check if the arrests and prosecutions are eligible for expungement.
+  The next screens will ask about your juvenile records. These include your arrest records and your court records. The questions will ask for details to check if they are eligible for expungement.
   
-  This program will only work for the arrests and court records that appear eligible for expungement. If this program says a case is not expungeable, there may be other ways to remove it from your record. You may want to talk to a lawyer about your cases. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area. 
+  If this program says a record is not eligible for expungement, you may become eligible later or have other options. You may want to talk to a lawyer about your cases. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area. 
 ---
 id: arrest date
 question: |
@@ -607,12 +605,15 @@ fields:
 id: found guilty
 question: |
   What type of offense did the judge find you delinquent (guilty) of?
-choices:
-  - A traffic offense: traffic
-  - First-degree murder or a felony sex offense: murder
-  - A felony or Class A misdemeanor: felony_or_a
-  - A Class B or Class C misdemeanor: b_or_c
-  - A petty offense: petty                                          
+fields:
+  - no label: arrests[i].found_guilty
+    input type: radio
+    choices:
+      - A traffic offense: traffic
+      - First-degree murder or a felony sex offense: murder
+      - A felony or Class A misdemeanor: felony_or_a
+      - A Class B or Class C misdemeanor: b_or_c
+      - A petty offense: petty                                          
 ---
 id: arrest registry
 question: |
