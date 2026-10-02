@@ -530,8 +530,10 @@ content: |
   If you have records in more than one county, you will have to use this program more than once to create forms for each county. 
 ---
 code: |
-  filing_location.trial_court_index
-  filing_location.county = trial_court.address.county
+  if filing_location.trial_court_index == "-1":
+    filing_location.county = "Cook"
+  else:
+    filing_location.county = trial_court.address.county
 ---
 id: ir number
 question: |
