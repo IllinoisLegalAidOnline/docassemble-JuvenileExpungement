@@ -21,9 +21,7 @@ objects:
   - arrests[i].agency: ALIndividual
   - arrests[i].selected_agency: ALIndividual
   - arrests[i].review_agencies: ALPeopleList.using(auto_gather=False, there_are_any=False, there_is_another=False)
-  - filing_location: ALAddress
   - states_attorney_address: ALAddress
-  - court_list: ALCourtLoader.using(file_name='docassemble.ILAO:data/sources/il_courts.xlsx')
   - cook_preview: DAStaticFile.using(filename="cook_county_and_chicago_examples.pdf")
   - il_preview: DAStaticFile.using(filename="illinois_not_cook_examples.pdf")
   - qualified_arrests: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True, there_is_another=False)
@@ -68,7 +66,7 @@ code: |
 
   set_progress(20)
   nav.set_section('section_records')
-  if filing_location.county == "Cook":
+  if filing_county == "Cook":
     ir_number_check
   arrests_intro
   build_expungement_outcomes()
@@ -245,7 +243,7 @@ subquestion: |
 
   This form can only be used for records related to offenses you were accused of committing before you turned 18. It does not apply to other types of juvenile court cases, such as abuse or neglect cases.
   
-  To learn more, read ILAO's article, [**Juvenile expungement basics**](https://www.illinoislegalaid.org/node/51836).
+  To learn more, see ILAO's article on [**Juvenile record expungement**](https://www.illinoislegalaid.org/node/51836).
 field: sees_nav_bar
 terms:
   - adjudications: |
@@ -300,7 +298,7 @@ subquestion: |
   * If you have records from adult criminal court, you can make a request to expunge or seal them using ILAO's [**Expunge or seal criminal records Easy Form**](https://www.illinoislegalaid.org/node/30976).
   * If you have convictions involving cannabis, you can make a request to expunge them using ILAO's [**Cannabis expungement Easy Form**](https://www.illinoislegalaid.org/node/173941).
 
-  To learn more about expungement, read ILAO's article [**starting a request to expunge or seal a juvenile arrest record**](https://www.illinoislegalaid.org/legal-information/starting-request-expunge-or-seal-juvenile-arrest-record).
+  To learn more about expungement, see ILAO's article on [**Starting a request to expunge a juvenile record**](https://www.illinoislegalaid.org/node/51826).
 terms:
   - adjudications: |
       An **adjudication** is a court's decision about whether you committed an offense in a juvenile case. The judge may find (adjudicate) you delinquent or not delinquent.
@@ -314,13 +312,13 @@ subquestion: |
 
   **Important:** Expunging records may make it more difficult for someone to provide them to immigration. Speak to an immigration lawyer before filing to expunge or seal any criminal or juvenile records. Use **[Get Legal Help](https://www.illinoislegalaid.org/get-legal-help)** to find free or low-cost legal services in your area.
 
-  To learn more, read ILAO's [**Expunging or sealing criminal records for immigration purposes FAQ**](https://www.illinoislegalaid.org/node/51801).
+  To learn more, see ILAO's [**Expunging or sealing criminal records for immigration purposes FAQ**](https://www.illinoislegalaid.org/node/51801).
 ---
 id: read or skip information
 question: |
   More information about clearing your juvenile record
 subquestion: |
-  To get detailed information about clearing your juvenile record, you may want to start with ILAO's guide to [**Juvenile record expungement**](https://www.illinoislegalaid.org/node/51836).
+  To get detailed information about clearing your juvenile record, see ILAO's article on [**Juvenile record expungement**](https://www.illinoislegalaid.org/node/51836).
 
   You can also read more on the next four screens of this Easy Form. If you want to read more information now, click **Yes**. You can go through it before making your forms.
 
@@ -342,7 +340,7 @@ subquestion: |
 
   An **expungement** erases arrests, dismissed charges, court supervisions, and qualified probations that were completed successfully from your juvenile record so it is like they never happened.
 
-  Some arrests or cases may be automatically expunged. For other arrests or cases, you must file a *${ form_name }* with the court and have a judge approve your *Request*. To learn more about types of expungement, read ILAO's guide to [**Juvenile record expungement**](https://www.illinoislegalaid.org/node/51836).
+  Some arrests or cases may be automatically expunged. For other arrests or cases, you must file a *${ form_name }* with the court and have a judge approve your *Request*. To learn more about types of expungement, see ILAO's article on [**Juvenile record expungement**](https://www.illinoislegalaid.org/node/51836).
 ---
 id: more expungement info
 continue button field: more_expungement_info
@@ -400,7 +398,7 @@ subquestion: |
   
   ${ collapse_template(cpd_records_help) }
 
-  For more information, read ILAO's guide to [**Finding your juvenile records**](https://www.illinoislegalaid.org/node/131481).
+  For more information, see ILAO's article on [**Finding your juvenile records**](https://www.illinoislegalaid.org/node/131481).
 ---
 template: clerk_records_help
 subject: |
@@ -421,7 +419,7 @@ content: |
     Bureau of Identification[NEWLINE]
     260 North Chicago Street[NEWLINE]
     Joliet, Illinois 60432[NEWLINE]
-    (815) 740-5160[NEWLINE]
+    <a href="tel:815-740-5160">**(815) 740-5160 :phone:**</a>[NEWLINE]
     [isp.illinois.gov/BureauOfIdentification](https://isp.illinois.gov/BureauOfIdentification)
 
   * From your local law enforcement agency:[NEWLINE]
@@ -439,7 +437,7 @@ content: |
     Chicago Police Headquarters[NEWLINE]
     3510 S. Michigan Ave.[NEWLINE]
     Chicago, IL[NEWLINE]
-    (312) 745-5508[NEWLINE]
+    <a href="tel:312-745-5508">**(312) 745-5508 :phone:**</a>[NEWLINE]
   
   * You will receive your RAP sheet in the mail.
   
@@ -460,7 +458,7 @@ subquestion: |
 
   Juvenile records are automatically sealed. The public cannot see them without a court order. However, some employers and government agencies still have access unless the records are expunged.
 
-  **Note:** People under 18 sometimes have their cases heard in adult criminal court. If your case was heard in adult criminal court, you have an adult criminal record. You may be able to clear your adult records using ILAO's [**Expunge or seal criminal records Easy Form**](https://www.illinoislegalaid.org/legal-information/criminal-record-expungement-or-sealing-request).
+  **Note:** People under 18 sometimes have their cases heard in adult criminal court. If your case was heard in adult criminal court, you have an adult criminal record. You may be able to clear your adult records using ILAO's [**Expunge or seal criminal records Easy Form**](https://www.illinoislegalaid.org/node/30976).
 ---
 template: seventeen_years
 subject: |
@@ -512,14 +510,9 @@ subquestion: |
   
   ${collapse_template(multiple_counties)}
 fields:
-  - County: filing_location.trial_court_index
+  - County: filing_county
     code: |
-      ilao_court_county_lookup(court_list)
-validation code: |
-  if filing_location.trial_court_index == -1:
-    trial_court = court_list.as_court('trial_court', 15)
-  else:
-    trial_court = court_list.as_court('trial_court', filing_location.trial_court_index)
+      il_county_list
 ---
 template: multiple_counties
 subject: |
@@ -528,12 +521,6 @@ content: |
   While this program creates a *Request to Expunge Juvenile Records* that can expunge more than one arrest, they must be from the same county.
   
   If you have records in more than one county, you will have to use this program more than once to create forms for each county. 
----
-code: |
-  if filing_location.trial_court_index == "-1":
-    filing_location.county = "Cook"
-  else:
-    filing_location.county = trial_court.address.county
 ---
 id: ir number
 question: |
@@ -623,7 +610,7 @@ question: |
 subquestion: |
   If you were adjudicated delinquent (found guilty) of a sex offense, the court should have told you that you must register as a Juvenile Sex Offender.
 
-  To learn more about the Juvenile Sex Offender Registry, read ILAO's article, [**Can a sex offender be removed from the registry?**](https://www.illinoislegalaid.org/legal-information/appealing-my-registration-sex-offender)
+  To learn more about the Juvenile Sex Offender Registry, see ILAO's article, [**Can a sex offender be removed from the registry?**](https://www.illinoislegalaid.org/node/50336)
 
   If you were previously on the Juvenile Sex Offender Registry for this offense but you are no longer required to be, you can click **No**.
 fields:
@@ -918,7 +905,7 @@ code: |
 ---
 id: arrests there is another
 question: |
-  Do you want to expunge another juvenile record from ${end_in_county(filing_location.county)}?
+  Do you want to expunge another juvenile record from ${end_in_county(filing_county)}?
 subquestion: |
   % if arrests.number_gathered() > 1:
   So far you have told us about the arrests that took place on:
@@ -1035,9 +1022,9 @@ subquestion: |
 ---
 id: states attorney address
 question: |
-  What is the address of the ${end_in_county(filing_location.county)} State's Attorney's office?
+  What is the address of the ${end_in_county(filing_county)} State's Attorney's office?
 subquestion: | 
-  You should be able to find this address on the Internet. You can click [**Illinois ${end_in_county(filing_location.county)} State's Attorney address :external-link:**](https://www.google.com/search?q=${filing_location.county}+county+illinois+state%27s+attorney%27s+office) to search for it using Google.
+  You should be able to find this address on the Internet. You can click [**Illinois ${end_in_county(filing_county)} State's Attorney address :external-link:**](https://www.google.com/search?q=${filing_county}+county+illinois+state%27s+attorney%27s+office) to search for it using Google.
   
   If you do not know this now, you can add it to your forms later. You will need to add the State's Attorney's address before you file your forms.
 fields:
@@ -1142,13 +1129,13 @@ question: |
 subquestion: |
   After you download your forms, you must file them with the Circuit Clerk in the county where you were arrested or charged. This program **does not file** your forms for you.
 
-  For details about how to file expungement requests in ${ filing_location.county } County, contact the Circuit Clerk's office. You can find your Circuit Clerk's phone number on the [**Illinois Courts website**](https://ilcourts.info/clerks).
+  For details about how to file expungement requests in ${ filing_county } County, contact the Circuit Clerk's office. You can find your Circuit Clerk's phone number on the [**Illinois Courts website**](https://ilcourts.info/clerks).
 
   There is no fee to file a *${form_name}* in Illinois. However, there may be fees to get records from police departments, certified dispositions, or documents. 
 
   After you file the *Request* and get a court date, you may need to go in front of a judge. Some counties schedule a court date right away, but others will only schedule a court date if a police department or prosecutor files an objection to your *Request*.
   
-  Finally, the court will decide on your *Request*. To learn about the filing process and what happens after the court makes its decision, see ILAO's guide to [**Starting a request to expunge a juvenile record**](https://www.illinoislegalaid.org/node/51826).
+  Finally, the court will decide on your *Request*. To learn about the filing process and what happens after the court makes its decision, see ILAO's article on [**Starting a request to expunge a juvenile record**](https://www.illinoislegalaid.org/node/51826).
   
   To learn more, download and read the "How to Expunge Juvenile Records" instructions at the end of this program.
 ---
@@ -1280,7 +1267,7 @@ attachment:
   skip undefined: True
   pdf template file: juvenile_expungement_request.pdf  
   fields:
-    - "filing_county": ${ filing_location.county }
+    - "filing_county": ${ filing_county }
     - "user_name_1": ${users[0].name_full()}
     - "user_name_2": ${users[0].name_full()}
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") if users[0].has_other_names else "" }
@@ -1368,7 +1355,7 @@ attachment:
   skip undefined: True
   pdf template file: juvenile_expungement_deny_order.pdf  
   fields:
-    - "filing_county": ${ filing_location.county }
+    - "filing_county": ${ filing_county }
     - "user_name_1": ${users[0].name_full()}
     - "user_name_2": ${ order_recipient.name_full() if add_order_recipient else users[0].name_full() }
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") if users[0].has_other_names else "" }
@@ -1403,7 +1390,7 @@ attachment:
   skip undefined: True
   pdf template file: juvenile_expungement_change_address.pdf  
   fields:
-    - "filing_county": ${ filing_location.county }
+    - "filing_county": ${ filing_county }
     - "user_name_1": ${users[0].name_full()}
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") if users[0].has_other_names else "" }
     - "user_birth_date": ${users[0].birthdate}
@@ -1418,9 +1405,9 @@ attachment:
   skip undefined: True
   pdf template file: juvenile_expungement_notice.pdf  
   fields:
-    - "filing_county_1": ${ filing_location.county }
-    - "filing_county_2": ${ filing_location.county }
-    - "filing_county_3": ${ filing_location.county }
+    - "filing_county_1": ${ filing_county }
+    - "filing_county_2": ${ filing_county }
+    - "filing_county_3": ${ filing_county }
     - "user_name_1": ${users[0].name_full()}
     - "user_name_2": ${users[0].name_full()}
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") if users[0].has_other_names else "" }
@@ -1518,7 +1505,7 @@ attachment:
   skip undefined: True
   pdf template file: juvenile_expungement_approve_order.pdf  
   fields:
-    - "filing_county": ${ filing_location.county }
+    - "filing_county": ${ filing_county }
     - "user_name_1": ${ users[0].name_full() }
     - "user_name_2": ${ order_recipient.name_full() if add_order_recipient else users[0].name_full() }
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") if users[0].has_other_names else "" }
@@ -1563,7 +1550,7 @@ attachment:
   skip undefined: True
   pdf template file: juvenile_expungement_case_list.pdf  
   fields:
-    - "filing_county": ${ filing_location.county }
+    - "filing_county": ${ filing_county }
     - "user_name": ${ users[0].name_full() }
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") if users[0].has_other_names else "" }
     - "user_birth_date": ${users[0].birthdate}
@@ -1645,7 +1632,7 @@ attachment:
   skip undefined: True
   pdf template file: juvenile_expungement_records.pdf  
   fields:
-    - "filing_county": ${ filing_location.county }
+    - "filing_county": ${ filing_county }
     - "user_name": ${ users[0].name_full() }
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") if users[0].has_other_names else "" }
     - "user_birth_date": ${users[0].birthdate}
@@ -1691,7 +1678,7 @@ attachment:
   skip undefined: True
   pdf template file: juvenile_expungement_agencies.pdf  
   fields:
-    - "filing_county": ${ filing_location.county }
+    - "filing_county": ${ filing_county }
     - "user_name_1": ${ users[0].name_full() }
     - "other_names": ${ other_user_names.replace("\n", " ").replace("\r", " ") if users[0].has_other_names else "" }
     - "user_birth_date": ${users[0].birthdate}
@@ -1729,14 +1716,10 @@ subquestion: |
 review:
   - note: |
       <h4>Your records</h4>
-  - label: Edit
-    fields:
-      - filing_location.trial_court_index
-      - recompute:
-        - filing_location.county
+  - Edit: filing_county
     button: |
       **Which county are you filing your request in?**
-      ${end_in_county(filing_location.county)}
+      ${end_in_county(filing_county)}
   - Edit: ir_number_check
     button: |
       % if ir_number_check:
@@ -1746,7 +1729,7 @@ review:
       **Do you have an IR number?**
       No
       % endif
-    show if: filing_location.trial_court_index == -1
+    show if: filing_county == "Cook"
   - Edit: arrests.revisit
     button: |
       **Records: (Edit to review, change details, or add more)**
@@ -1828,7 +1811,7 @@ review:
     show if: add_order_recipient    
   - Edit: states_attorney_address.address
     button: |
-      **${end_in_county(filing_location.county)} State's Attorney's address:**
+      **${end_in_county(filing_county)} State's Attorney's address:**
       % if states_attorney_address.line_one(bare=True) == "":
       I don't know
       % else:
@@ -1857,14 +1840,10 @@ subquestion: |
   
   Edit your answers below.
 review:
-  - label: Edit
-    fields:
-      - filing_location.trial_court_index
-      - recompute:
-        - filing_location.county
+  - Edit: filing_county
     button: |
       **Which county are you filing your request in?**
-      ${end_in_county(filing_location.county)}
+      ${end_in_county(filing_county)}
   - Edit: ir_number_check
     button: |
       % if ir_number_check:
@@ -1874,7 +1853,7 @@ review:
       **Do you have an IR number?**
       No
       % endif
-    show if: filing_location.trial_court_index == -1
+    show if: filing_county == "Cook"
   - Edit: arrests.revisit
     button: |
       **Records: (Edit to review, change details, or add more)**
@@ -2174,7 +2153,7 @@ review:
     show if: add_order_recipient    
   - Edit: states_attorney_address.address
     button: |
-      **${end_in_county(filing_location.county)} State's Attorney's address:**
+      **${end_in_county(filing_county)} State's Attorney's address:**
       % if states_attorney_address.line_one(bare=True) == "":
       I don't know
       % else:
