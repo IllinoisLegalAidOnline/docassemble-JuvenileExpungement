@@ -241,7 +241,7 @@ subquestion: |
 
   This program makes a *Request to Expunge Juvenile Records*. You can use this form to ask a judge to clear eligible juvenile arrests, cases, and **{adjudications}** from your record. A juvenile record is created when a person under 18 is arrested or goes to juvenile court. 
 
-  This form can only be used for records related to offenses you were accused of committing before you turned 18. It does not apply to other types of juvenile court cases, such as abuse or neglect cases.
+  This form can only be used for records related to offenses you were accused of committing before you turned 18. It cannot be used for adult criminal cases or other types of juvenile court cases, such as abuse or neglect cases.
   
   To learn more, see ILAO's article on [**Juvenile record expungement**](https://www.illinoislegalaid.org/node/51836).
 field: sees_nav_bar
@@ -289,7 +289,7 @@ continue button field: about_expungement
 question: | 
   About expungement 
 subquestion: | 
-  Some juvenile arrests and court records can be expunged. **Expungement** erases or removes records from public view and destroys them, as if the arrest or charge never happened.
+  Some juvenile arrests and court records can be expunged. **Expungement** erases or removes records from public view and destroys them, as if the arrest or charge never happened. Juvenile records are automatically sealed, which means they do not appear on most background checks even before they are expunged.
 
   This program helps you fill out a *Request to Expunge Juvenile Records*. On it, you will list your eligible juvenile arrests and **{adjudications}**. **Note:** You can only include court records from **one county** in the request. If you need to expunge records in more than one county, you will need to run this program again to make more forms.
 
@@ -367,7 +367,7 @@ subquestion: |
   **Police records**
 
   * An Illinois State Police Statewide Criminal History Transcript lists most arrests and adjudications that happened in Illinois.
-  * A Chicago RAP Sheet (Record of Arrests and Prosecutions) lists all arrests, charges, and court case outcomes that happened in Chicago.
+  * A Chicago RAP Sheet (Record of Arrests and Prosecutions) lists all arrests, charges, and court case outcomes that happened in Chicago. You may need to go to the Juvenile Courthouse located at 1100 South Hamilton to get a RAP sheet with your juvenile cases.
 ---
 id: more records info
 continue button field: more_records_info
@@ -431,12 +431,13 @@ template: cpd_records_help
 subject: |
   **How to access records from the Chicago Police Department**
 content: |
-  To access records from the Chicago Police Department:
+  To access juvenile records from the Chicago Police Department:
   
-  * You must go to the Chicago Police Department to get your Chicago RAP sheet:[NEWLINE]
-    Chicago Police Headquarters[NEWLINE]
-    3510 S. Michigan Ave.[NEWLINE]
-    Chicago, IL[NEWLINE]
+  * You must go to Chicago's Public Safety Headquarters to get your Chicago RAP sheet:[NEWLINE]
+    City of Chicago Public Safety Headquarters[NEWLINE]
+    Access and Review Dept.[NEWLINE]
+    3510 S. Michigan Ave., 1st Floor [NEWLINE]
+    Chicago, IL 60653[NEWLINE]
     <a href="tel:312-745-5508">**(312) 745-5508 :phone:**</a>[NEWLINE]
   
   * You will receive your RAP sheet in the mail.
@@ -568,7 +569,7 @@ fields:
     choices:
       - I was arrested as a juvenile but never appeared before a judge.: no_charge
         help: |
-          You might see the words “station adjustment” or “released without charging” on your records. This also may mean that the State’s Attorney did not file formal charges against you or that your case was diverted out of court.
+          You might see the words "informal adjustment," "station adjustment,"" or "released without charging" on your records. This also may mean that the State’s Attorney did not file formal charges against you or that your case was diverted out of court.
       - I was given a diversion program at the police station or at the probation department.: diversion
         help: |
           Diversion programs are an alternative to criminal prosecution. Diversion programs available in Illinois include the Drug Deferred Prosecution Program, the Mental Health Treatment Court, and the Restorative Justice Community Court, among others.
@@ -677,6 +678,8 @@ question: |
 subquestion: |
   % if arrests[i].found_guilty == "traffic":
   You cannot use this program to expunge a traffic offense.
+
+  Some traffic offenses can be expunged in adult criminal court. You may be able to use ILAO's [**Expunge or seal criminal records Easy Form**](https://www.illinoislegalaid.org/node/30976) to expunge records from the ${arrests[i].date} arrest.
   % elif arrests[i].found_guilty == "murder":
   You cannot use this program to expunge a first-degree murder or a felony sex offense.
   % else:
@@ -839,6 +842,8 @@ question: |
   What was the outcome of the ${arrests[i].date} arrest?
 subquestion: |
   **Note:** You may have entered this already. The outcome code is used on a different part of the forms.
+
+  If you do not know the outcome code, you can ask the Circuit Clerk's Office. Find your Circuit Clerk's website at: [ilcourts.info/clerks](https://ilcourts.info/clerks).
 fields:
   - Outcome: arrests[i].outcome
     datatype: radio
