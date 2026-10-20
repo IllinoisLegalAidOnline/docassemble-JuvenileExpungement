@@ -26,6 +26,7 @@ objects:
   - il_preview: DAStaticFile.using(filename="illinois_not_cook_examples.pdf")
   - qualified_arrests: DAList.using(object_type=Thing, complete_attribute='complete', there_are_any=True, there_is_another=False)
   - expungement_outcomes: DAList.using(there_are_any=True)
+  - instructions_preview: DAStaticFile.using(filename="juvenile_expungement_instructions_download.pdf")
 ---
 modules:
   - .is_eligible
@@ -388,7 +389,7 @@ subquestion: |
   
   ${ collapse_template(isp_records_help) }
 
-  For more information, you can read the Illinois Courts instructions on [**how to expunge juvenile records**](https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/expungement-sealing/). The instructions can be downloaded at the end of the program.
+  For more information, you can [**download and read the Illinois Courts instructions on how to expunge juvenile records**](${instructions_preview.url_for()}).
 
   **Records from Cook County and the Chicago Police Department**
 
