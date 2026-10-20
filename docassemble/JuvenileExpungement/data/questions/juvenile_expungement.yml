@@ -298,7 +298,7 @@ subquestion: |
   * If you have records from adult criminal court, you can make a request to expunge or seal them using ILAO's [**Expunge or seal criminal records Easy Form**](https://www.illinoislegalaid.org/node/30976).
   * If you have convictions involving cannabis, you can make a request to expunge them using ILAO's [**Cannabis expungement Easy Form**](https://www.illinoislegalaid.org/node/173941).
 
-  To learn more about expungement, see ILAO's article on [**Starting a request to expunge a juvenile record**](https://www.illinoislegalaid.org/node/51826).
+  To learn more about expunging juvenile records, see ILAO's article on [**Starting a request to expunge a juvenile record**](https://www.illinoislegalaid.org/node/51826).
 terms:
   - adjudications: |
       An **adjudication** is a court's decision about whether you committed an offense in a juvenile case. The judge may find (adjudicate) you delinquent or not delinquent.
@@ -367,7 +367,7 @@ subquestion: |
   **Police records**
 
   * An Illinois State Police Statewide Criminal History Transcript lists most arrests and adjudications that happened in Illinois.
-  * A Chicago RAP Sheet (Record of Arrests and Prosecutions) lists all arrests, charges, and court case outcomes that happened in Chicago. You may need to go to the Juvenile Courthouse located at 1100 South Hamilton to get a RAP sheet with your juvenile cases.
+  * A Chicago RAP Sheet (Record of Arrests and Prosecutions) lists all arrests, charges, and court case outcomes that happened in Chicago.
 ---
 id: more records info
 continue button field: more_records_info
@@ -388,11 +388,11 @@ subquestion: |
   
   ${ collapse_template(isp_records_help) }
 
-  For more information, you can read the Illinois Courts instructions on [**how to expunge juvenile records**](https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/expungement-sealing/).
+  For more information, you can read the Illinois Courts instructions on [**how to expunge juvenile records**](https://www.illinoiscourts.gov/documents-and-forms/approved-forms/circuit-court-standardized-forms-suites/expungement-sealing/). The instructions can be downloaded at the end of the program.
 
-  **Records from the Chicago Police Department**
+  **Records from Cook County and the Chicago Police Department**
 
-  In Chicago, juvenile arrest records are available at the Juvenile Courthouse located at 1100 South Hamilton. You can also get assistance from [**Legal Aid Chicago’s Juvenile Expungement Help Desk**](https://legalaidchicago.org/get-help/court-based-help-desks/) if you qualify for their services. If you were arrested by the Chicago Police Department, you can also get your RAP sheet from them.
+  In Cook County, juvenile arrest records are available at the Juvenile Courthouse located at 1100 South Hamilton Avenue in Chicago. You can also get assistance from [**Legal Aid Chicago's Juvenile Expungement Help Desk**](https://legalaidchicago.org/get-help/court-based-help-desks/) if you qualify for their services. If you were arrested by the Chicago Police Department, you can also get your RAP sheet from them.
 
   If you were arrested by the Chicago Police Department, you must get your records from them. You can order a RAP sheet from the Chicago Police Department. There will be a fee.
   
@@ -418,8 +418,8 @@ content: |
     Illinois State Police[NEWLINE]
     Bureau of Identification[NEWLINE]
     260 North Chicago Street[NEWLINE]
-    Joliet, Illinois 60432[NEWLINE]
-    <a href="tel:815-740-5160">**(815) 740-5160 :phone:**</a>[NEWLINE]
+    Joliet, IL 60432[NEWLINE]
+    <a href="tel:815-740-5160">**(815) 740-5160**</a>[NEWLINE]
     [isp.illinois.gov/BureauOfIdentification](https://isp.illinois.gov/BureauOfIdentification)
 
   * From your local law enforcement agency:[NEWLINE]
@@ -433,14 +433,11 @@ subject: |
 content: |
   To access juvenile records from the Chicago Police Department:
   
-  * You must go to Chicago's Public Safety Headquarters to get your Chicago RAP sheet:[NEWLINE]
-    City of Chicago Public Safety Headquarters[NEWLINE]
-    Access and Review Dept.[NEWLINE]
-    3510 S. Michigan Ave., 1st Floor [NEWLINE]
+  * You can go to the Chicago Police Department to get your Chicago RAP sheet:[NEWLINE]
+    Chicago Police Headquarters[NEWLINE]
+    3510 S. Michigan Ave.[NEWLINE]
     Chicago, IL 60653[NEWLINE]
-    <a href="tel:312-745-5508">**(312) 745-5508 :phone:**</a>[NEWLINE]
-  
-  * You will receive your RAP sheet in the mail.
+    <a href="tel:312-745-5508">**(312) 745-5508**</a>[NEWLINE] 
   
   * You should also request a copy of your Illinois State Police Statewide Criminal History Transcript. The Chicago Police will provide your state record for no additional cost.
 ---
@@ -569,7 +566,7 @@ fields:
     choices:
       - I was arrested as a juvenile but never appeared before a judge.: no_charge
         help: |
-          You might see the words "informal adjustment," "station adjustment,"" or "released without charging" on your records. This also may mean that the State’s Attorney did not file formal charges against you or that your case was diverted out of court.
+          You might see the words "informal adjustment," "station adjustment," or "released without charging" on your records. This also may mean that the State's Attorney did not file formal charges against you or that your case was diverted out of court.
       - I was given a diversion program at the police station or at the probation department.: diversion
         help: |
           Diversion programs are an alternative to criminal prosecution. Diversion programs available in Illinois include the Drug Deferred Prosecution Program, the Mental Health Treatment Court, and the Restorative Justice Community Court, among others.
@@ -837,13 +834,12 @@ content: |
 
   **Note:** These examples will open in a new tab or window.
 ---
+#Future project: evaluate how to simplify outcome code determination; currently there is redundancy between this question and preceeding ones. Perhaps calculate the code and ask user to confirm it?
 id: arrest outcome
 question: |
   What was the outcome of the ${arrests[i].date} arrest?
 subquestion: |
   **Note:** You may have entered this already. The outcome code is used on a different part of the forms.
-
-  If you do not know the outcome code, you can ask the Circuit Clerk's Office. Find your Circuit Clerk's website at: [ilcourts.info/clerks](https://ilcourts.info/clerks).
 fields:
   - Outcome: arrests[i].outcome
     datatype: radio
@@ -878,7 +874,7 @@ code: |
     expungement_outcomes.append({
       'abbreviation': 'A',
       'disposition': 'Arrest without court case filed/station or probation adjustment/pre-petition diversion',
-      'more_information': 'You were arrested but not charged with an offense or brought to court, or you were assigned a diversion program.'
+      'more_information': 'You were arrested but not charged with an offense or brought to court, or you were assigned a diversion program. You might see the words "informal adjustment," "station adjustment," or "released without charging" on your records.'
   })
     expungement_outcomes.append({
       'abbreviation': 'ND',
