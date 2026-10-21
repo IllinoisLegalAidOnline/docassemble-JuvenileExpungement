@@ -389,7 +389,7 @@ subquestion: |
   
   ${ collapse_template(isp_records_help) }
 
-  For more information, you can [**download and read the Illinois Courts instructions on how to expunge juvenile records**](${instructions_preview.url_for()}).
+  For more information, you can [**read the How to Expunge Juvenile Records instructions :external-link:**](${instructions_preview.url_for()}). Afterward, come back to this screen to continue. **Note**: You can also download the instructions with the rest of your forms at the end of the program.
 
   **Records from Cook County and the Chicago Police Department**
 
