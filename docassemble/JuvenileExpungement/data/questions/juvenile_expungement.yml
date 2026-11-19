@@ -714,7 +714,7 @@ id: charge offense
 question: |
   What was the charge for the ${arrests[i].date} arrest?
 subquestion: |  
-  This is the name of the offense you were charged with, such as "retail theft" or "possession of a controlled substance."
+  This is the name of the offense you were charged with, such as "retail theft" or "unlawful possession of drug paraphernalia."
 fields:
   - Charge: arrests[i].charge
     input type: area
@@ -1056,7 +1056,7 @@ subquestion: |
   
   Click **Yes** if you want the court to send the signed order to you at the above address. Click **No** if you want the court to send the signed order somewhere else.
 fields:
-  - "I want the court to send the order to": add_order_recipient
+  - "I want the court to send the order to:": add_order_recipient
     input type: radio
     choices:
       - Me: False
