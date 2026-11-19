@@ -297,7 +297,7 @@ subquestion: |
   This program is for juvenile arrest and court records that happened before you turned 18. They do not include cases handled in adult criminal court or traffic court, even if you were under 18 at the time. ILAO has other Easy Forms that can be used for records from adult criminal court:
 
   * If you have records from adult criminal court, you can make a request to expunge or seal them using ILAO's [**Expunge or seal criminal records Easy Form**](https://www.illinoislegalaid.org/node/30976).
-  * If you have convictions involving cannabis, you can make a request to expunge them using ILAO's [**Cannabis expungement Easy Form**](https://www.illinoislegalaid.org/node/173941).
+  * If you have convictions from adult criminal court involving cannabis, you can make a request to expunge them using ILAO's [**Cannabis expungement Easy Form**](https://www.illinoislegalaid.org/node/173941).
 
   To learn more about expunging juvenile records, see ILAO's article on [**Starting a request to expunge a juvenile record**](https://www.illinoislegalaid.org/node/51826).
 terms:
@@ -393,7 +393,7 @@ subquestion: |
 
   **Records from Cook County and the Chicago Police Department**
 
-  In Cook County, juvenile arrest records are available at the Juvenile Courthouse located at 1100 South Hamilton Avenue in Chicago. You can also get assistance from [**Legal Aid Chicago's Juvenile Expungement Help Desk**](https://legalaidchicago.org/get-help/court-based-help-desks/) if you qualify for their services. If you were arrested by the Chicago Police Department, you can also get your RAP sheet from them.
+  In Cook County, juvenile arrest records are available at the Juvenile Courthouse located at 1100 South Hamilton Avenue in Chicago. You can also get assistance from [**Legal Aid Chicago's Juvenile Expungement Help Desk**](https://legalaidchicago.org/get-help/court-based-help-desks/) if you qualify for their services.
 
   If you were arrested by the Chicago Police Department, you must get your records from them. You can order a RAP sheet from the Chicago Police Department. There will be a fee.
   
@@ -420,7 +420,7 @@ content: |
     Bureau of Identification[NEWLINE]
     260 North Chicago Street[NEWLINE]
     Joliet, IL 60432[NEWLINE]
-    <a href="tel:815-740-5160">**(815) 740-5160**</a>[NEWLINE]
+    <a href="tel:+18157405160">**(815) 740-5160**</a>[NEWLINE]
     [isp.illinois.gov/BureauOfIdentification](https://isp.illinois.gov/BureauOfIdentification)
 
   * From your local law enforcement agency:[NEWLINE]
@@ -438,7 +438,7 @@ content: |
     Chicago Police Headquarters[NEWLINE]
     3510 S. Michigan Ave.[NEWLINE]
     Chicago, IL 60653[NEWLINE]
-    <a href="tel:312-745-5508">**(312) 745-5508**</a>[NEWLINE] 
+    <a href="tel:+13127455508">**(312) 745-5508**</a>[NEWLINE] 
   
   * You should also request a copy of your Illinois State Police Statewide Criminal History Transcript. The Chicago Police will provide your state record for no additional cost.
 ---
@@ -714,7 +714,7 @@ id: charge offense
 question: |
   What was the charge for the ${arrests[i].date} arrest?
 subquestion: |  
-  This is the name of the offense you were charged with, such as "retail theft" or "cannabis possession."
+  This is the name of the offense you were charged with, such as "retail theft" or "possession of a controlled substance."
 fields:
   - Charge: arrests[i].charge
     input type: area
@@ -946,7 +946,7 @@ question: |
 subquestion: |
   **This address will appear on your court papers.** You may receive court notices and documents about your case at this address.
 
-  **Note:** If you want the court to send the order to another address, you can enter it on another screen. This should be your address.
+  **Note:** If you want the court to send the order to a different address, you can enter a second address on another screen.
 fields:
   - Street address: users[0].address.address
     address autocomplete: True
@@ -1046,7 +1046,7 @@ fields:
 ---
 id: add order recipient
 question: |
-  Do you want the court to send the order to another person instead of you? 
+  Who do you want the court to send the order to? 
 subquestion: |  
   You entered the following contact information for yourself.
 
@@ -1054,19 +1054,19 @@ subquestion: |
   Phone: ${ phone_number_formatted(users[0].phone_number) if users[0].phone_number != "" else "None entered" }[NEWLINE]
   Email: ${ users[0].email if users[0].has_email_address else "None entered" }
   
-  Click **No** if you want the court to send the signed order to you at the above address. Click **Yes** if you want the court to send the signed order somewhere else.
+  Click **Yes** if you want the court to send the signed order to you at the above address. Click **No** if you want the court to send the signed order somewhere else.
 fields:
-  - "Send order to another person or address?": add_order_recipient
+  - "I want the court to send the order to": add_order_recipient
     input type: radio
     choices:
-      - Yes: True
-      - "No, I want the court to send the order to me.": False
+      - Me: False
+      - Someone else: True
 ---
 id: order recipient name
 sets:
   - order_recipient.name.first
 question:  |
-  Who do you want the court to send the order to?
+  Who do you want to get the order from the court?
 fields:
   - code: |
       order_recipient.name_fields()
@@ -1895,9 +1895,9 @@ table: arrests.table
 rows: arrests
 columns:
   - Arrest date: |
-      row_item.date if defined("row_item.date") else ""
+      row_item.date if hasattr(row_item, "date") else ""
   - Eligible for expungement: |
-      word(yesno(is_eligible(row_item))) if defined("row_item.complete") else ""
+      word(yesno(is_eligible(row_item))) if hasattr(row_item, "complete") else ""
 edit:
   - review_records_details
 delete buttons: True
